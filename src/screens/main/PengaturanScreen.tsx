@@ -25,6 +25,8 @@ import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 //import * as FileSystem from 'expo-file-system/legacy';
 import * as FileSystem from 'expo-file-system';
+//Tester
+import { logoToBase64 } from "../../utils/printer";
 
 type Section = {
   title: string;
@@ -338,7 +340,7 @@ export default function PengaturanScreen({ navigation }: any) {
   };
 
   //====================================================================
-  //V1.5.0 - Jadicuan Developer
+  // V1.5.0 - Jadicuan Developer
   // Fungsi untuk memilih logo toko dari galeri
   // Fitur logo toko: pilih dari galeri, tampil di header, disimpan di pengaturan
   const pickLogo = async () => {
@@ -359,6 +361,15 @@ export default function PengaturanScreen({ navigation }: any) {
       if (!sourceUri) {
         return;
       }
+      
+      // Tester
+      const base64 = await logoToBase64(sourceUri);
+
+      console.log("=== TEST LOGO BASE64 ===");
+      console.log("URI:", sourceUri);
+      console.log("Base64 berhasil:", !!base64);
+      console.log("Panjang Base64:", base64.length);
+      console.log("========================");
 
       const fileName = `logo-toko-${Date.now()}.jpg`;
       const destination = new FileSystem.File(

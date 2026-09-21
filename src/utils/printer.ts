@@ -3,6 +3,7 @@ import {
   BluetoothManager,
   BluetoothEscposPrinter,
 } from "@vardrz/react-native-bluetooth-escpos-printer";
+import { File } from "expo-file-system";
 
 const BM = BluetoothManager as any;
 const BEP = BluetoothEscposPrinter as any;
@@ -159,10 +160,33 @@ async function ensureConnected(address: string): Promise<void> {
   }
 }
 
+// Function untuk merubah image menjadi Base64 - Jadicuan Developer
+export async function logoToBase64(uri: string): Promise<string> {
+  const file = new File(uri);
+  const buffer = await file.arrayBuffer();
+
+  return arrayBufferToBase64(buffer);
+}
+
 // ── Helper col layout ─────────────────────────────────────────────────────────
 function col(left: string, right: string, width = 32): string {
   const pad = width - right.length;
   return left.substring(0, Math.max(0, pad)).padEnd(Math.max(0, pad)) + right;
+}
+
+// Helper untuk menampilkan logo pada struk - Jadicuan Developer
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(
+      i,
+      Math.min(i + chunkSize, bytes.length),
+    );
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
 // ── Print Struk ───────────────────────────────────────────────────────────────
@@ -170,6 +194,9 @@ export interface StrukParams {
   namaToko: string;
   alamat?: string;
   noHp?: string;
+  // =========== Jadicuan Developer ===============
+  logo?: string;
+  // ==============================================
   footer?: string;
   noTrx: string;
   waktu: string;
@@ -217,6 +244,25 @@ export async function printStruk(
   try {
     // Header toko — center
     await BEP.printerAlign(BEP.ALIGN.CENTER);
+    //Add Logo Toko ke Struk Belanja - Jadicuan Developer
+    // Logo toko
+    if (p.logo) {
+        try {
+          const logoBase64 = await logoToBase64(p.logo);
+
+          await BEP.printPic(logoBase64, {
+            width: 200,
+            center: true,
+            paperSize: 58,
+            autoCut: false,
+          });
+
+          await BEP.printText("\n\r", {});
+        } catch (logoError) {
+          console.warn("Logo gagal dicetak, lanjut tanpa logo:", logoError);
+        }
+    }
+
     await BEP.printText(p.namaToko + "\n\r", { widthtimes: 1, heigthtimes: 1 });
     if (p.alamat) await BEP.printText(p.alamat + "\n\r", {});
     if (p.noHp) await BEP.printText(p.noHp + "\n\r", {});

@@ -43,6 +43,8 @@ export default function StrukScreen({ route, navigation }: any) {
   } = route.params;
 
   const settings = getPengaturan();
+  // Add logo Toko - Jadiicuan Developer
+  const logoToko = settings.logo_toko || "";
   const namaToko = settings.nama_toko || "Toko Saya";
   const alamat = settings.alamat || "";
   const noHp = settings.no_hp || "";
@@ -499,6 +501,8 @@ export default function StrukScreen({ route, navigation }: any) {
         namaToko,
         alamat,
         noHp,
+        // Add Logo Toko - Jadicuan Developer
+        logo: logoToko,
         footer,
         noTrx,
         waktu,
