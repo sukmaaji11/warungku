@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // FILE 1: src/screens/main/LaporanKasirScreen.tsx
 // ═══════════════════════════════════════════════════════════════════════════
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,26 @@ import {
   TouchableOpacity,
   FlatList,
   ScrollView,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../../constants";
-import { formatRupiah, todayString } from "../../utils/format";
-import { getDB } from "../../db/database";
-import { useAuthStore } from "../../store/authStore";
+  Modal,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants';
+import {
+  formatRupiah,
+  todayString,
+  toLocalDateString,
+} from '../../utils/format';
+import { getDB } from '../../db/database';
+import { useAuthStore } from '../../store/authStore';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-function getLaporanKasir(dari: string, sampai: string, filterKasir?: string): any[] {
+function getLaporanKasir(
+  dari: string,
+  sampai: string,
+  filterKasir?: string,
+): any[] {
   try {
     let query = `SELECT
          kasir,
@@ -45,44 +55,102 @@ function getLaporanKasir(dari: string, sampai: string, filterKasir?: string): an
 
 export function LaporanKasirScreen({ navigation }: any) {
   const [list, setList] = useState<any[]>([]);
-  const [range, setRange] = useState<"hari" | "minggu" | "bulan">("hari");
-  const { currentUser } = useAuthStore();
+  //const [range, setRange] = useState<'hari' | 'minggu' | 'bulan'>('hari');
 
+  // Custom Filter Report - Jadicuan Development
+  type RangeType = 'hari_ini' | 'kemarin' | '7_hari' | '30_hari' | 'custom';
+
+  const [range, setRange] = useState<RangeType>('hari_ini');
+
+  const [customDari, setCustomDari] = useState('');
+  const [customSampai, setCustomSampai] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
+  const [showPicker, setShowPicker] = useState<'dari' | 'sampai' | null>(null);
+  const { currentUser } = useAuthStore();
+  // Custom Filter Report - Jadicuan Development
+  function getRangeDate(r: RangeType) {
+    const today = todayString();
+    const d = new Date();
+
+    if (r === 'hari_ini') {
+      return {
+        dari: today,
+        sampai: today,
+      };
+    }
+
+    if (r === 'kemarin') {
+      d.setDate(d.getDate() - 1);
+      const kemarin = toLocalDateString(d);
+
+      return {
+        dari: kemarin,
+        sampai: kemarin,
+      };
+    }
+
+    if (r === '7_hari') {
+      d.setDate(d.getDate() - 6);
+
+      return {
+        dari: toLocalDateString(d),
+        sampai: today,
+      };
+    }
+
+    if (r === '30_hari') {
+      d.setDate(d.getDate() - 29);
+
+      return {
+        dari: toLocalDateString(d),
+        sampai: today,
+      };
+    }
+
+    return {
+      dari: customDari || today,
+      sampai: customSampai || today,
+    };
+  }
+  {
+    /* Filter range 
   const getRange = () => {
     const today = todayString();
     const d = new Date();
-    if (range === "hari") return { dari: today, sampai: today };
-    if (range === "minggu") {
+    if (range === 'hari') return { dari: today, sampai: today };
+    if (range === 'minggu') {
       d.setDate(d.getDate() - 6);
       return {
-        dari: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+        dari: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
         sampai: today,
       };
     }
     return {
-      dari: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      dari: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`,
       sampai: today,
     };
   };
-
+*/
+  }
+  // Custom Filter Report - Jadicuan Development
   const load = () => {
-    const { dari, sampai } = getRange();
+    const { dari, sampai } = getRangeDate(range);
     const filterKasir =
-      currentUser?.role === "kasir" ? currentUser.nama : undefined;
+      currentUser?.role === 'kasir' ? currentUser.nama : undefined;
     setList(getLaporanKasir(dari, sampai, filterKasir));
   };
-
+  // Custom Filter Report - Jadicuan Development
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [range]),
+    }, [range, customDari, customSampai, currentUser]),
   );
 
   const totalOmset = list.reduce((s, k) => s + (k.total_omset || 0), 0);
   const totalTrx = list.reduce((s, k) => s + (k.jumlah_trx || 0), 0);
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -93,23 +161,57 @@ export function LaporanKasirScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Filter range */}
+      {/* Filter range 
       <View style={s.rangeRow}>
-        {(["hari", "minggu", "bulan"] as const).map((r) => (
+        {(['hari', 'minggu', 'bulan'] as const).map((r) => (
           <TouchableOpacity
             key={r}
             style={[s.rangeChip, range === r && s.rangeChipActive]}
-            onPress={() => setRange(r)}>
+            onPress={() => setRange(r)}
+          >
             <Text style={[s.rangeTxt, range === r && s.rangeTxtActive]}>
-              {r === "hari"
-                ? "Hari Ini"
-                : r === "minggu"
-                  ? "7 Hari"
-                  : "Bulan Ini"}
+              {r === 'hari'
+                ? 'Hari Ini'
+                : r === 'minggu'
+                  ? '7 Hari'
+                  : 'Bulan Ini'}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </View>*/}
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={s.rangeContent}
+      >
+        {[
+          { key: 'hari_ini', label: 'Hari Ini' },
+          { key: 'kemarin', label: 'Kemarin' },
+          { key: '7_hari', label: '7 Hari' },
+          { key: '30_hari', label: '30 Hari' },
+          { key: 'custom', label: 'Custom' },
+        ].map((r) => (
+          <TouchableOpacity
+            key={r.key}
+            style={[s.rangeChip, range === r.key && s.rangeChipActive]}
+            onPress={() => {
+              setRange(r.key as RangeType);
+
+              if (r.key === 'custom') {
+                setShowCustom(true);
+              }
+            }}
+          >
+            <Text style={[s.rangeTxt, range === r.key && s.rangeTxtActive]}>
+              {r.key === 'custom' && customDari
+                ? `${customDari.slice(5)} → ${customSampai.slice(5)}`
+                : r.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Total summary */}
       <View style={s.summaryRow}>
@@ -119,13 +221,13 @@ export function LaporanKasirScreen({ navigation }: any) {
         </View>
         <View style={s.summaryCard}>
           <Text style={s.summaryLabel}>Total Transaksi</Text>
-          <Text style={[s.summaryVal, { color: "#60A5FA" }]}>{totalTrx}</Text>
+          <Text style={[s.summaryVal, { color: '#60A5FA' }]}>{totalTrx}</Text>
         </View>
       </View>
 
       <FlatList
         data={list}
-        keyExtractor={(i) => i.kasir || "unknown"}
+        keyExtractor={(i) => i.kasir || 'unknown'}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -139,38 +241,41 @@ export function LaporanKasirScreen({ navigation }: any) {
             <View
               style={[
                 s.rankBadge,
-                index === 0 && { backgroundColor: "#FEF3C7" },
-              ]}>
-              <Text style={[s.rankTxt, index === 0 && { color: "#92400E" }]}>
-                {index === 0 ? "🥇" : `#${index + 1}`}
+                index === 0 && { backgroundColor: '#FEF3C7' },
+              ]}
+            >
+              <Text style={[s.rankTxt, index === 0 && { color: '#92400E' }]}>
+                {index === 0 ? '🥇' : `#${index + 1}`}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.kasirNama}>{item.kasir || "Admin"}</Text>
+              <Text style={s.kasirNama}>{item.kasir || 'Admin'}</Text>
               <Text style={s.kasirSub}>{item.jumlah_trx} transaksi</Text>
               {/* Bar metode */}
               <View
                 style={{
-                  flexDirection: "row",
+                  flexDirection: 'row',
                   gap: 6,
                   marginTop: 8,
-                  flexWrap: "wrap",
-                }}>
+                  flexWrap: 'wrap',
+                }}
+              >
                 {[
-                  { label: "Tunai", val: item.tunai, color: Colors.success },
-                  { label: "TF", val: item.transfer, color: "#7C3AED" },
-                  { label: "QRIS", val: item.qris, color: Colors.info },
-                  { label: "Hutang", val: item.hutang, color: Colors.danger },
+                  { label: 'Tunai', val: item.tunai, color: Colors.success },
+                  { label: 'TF', val: item.transfer, color: '#7C3AED' },
+                  { label: 'QRIS', val: item.qris, color: Colors.info },
+                  { label: 'Hutang', val: item.hutang, color: Colors.danger },
                 ]
                   .filter((m) => m.val > 0)
                   .map((m) => (
                     <View
                       key={m.label}
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
+                        flexDirection: 'row',
+                        alignItems: 'center',
                         gap: 4,
-                      }}>
+                      }}
+                    >
                       <View
                         style={{
                           width: 6,
@@ -190,6 +295,89 @@ export function LaporanKasirScreen({ navigation }: any) {
           </View>
         )}
       />
+      {/* Modal Custom Tanggal */}
+      <Modal visible={showCustom} transparent animationType="fade">
+        <View style={s.customOverlay}>
+          <View style={s.customModal}>
+            <Text style={s.customTitle}>Pilih Rentang Tanggal</Text>
+
+            <Text style={s.customLabel}>Dari</Text>
+
+            <TouchableOpacity
+              style={s.customDateBtn}
+              onPress={() => setShowPicker('dari')}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={16}
+                color={Colors.primary}
+              />
+
+              <Text style={s.customDateText}>
+                {customDari || 'Pilih tanggal'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={s.customLabel}>Sampai</Text>
+
+            <TouchableOpacity
+              style={s.customDateBtn}
+              onPress={() => setShowPicker('sampai')}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={16}
+                color={Colors.primary}
+              />
+
+              <Text style={s.customDateText}>
+                {customSampai || 'Pilih tanggal'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.customApplyBtn}
+              onPress={() => {
+                if (!customDari || !customSampai) {
+                  return;
+                }
+
+                setShowCustom(false);
+                setRange('custom');
+              }}
+            >
+              <Text style={s.customApplyText}>Terapkan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {showPicker && (
+        <DateTimePicker
+          value={
+            showPicker === 'dari' && customDari
+              ? new Date(customDari)
+              : showPicker === 'sampai' && customSampai
+                ? new Date(customSampai)
+                : new Date()
+          }
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowPicker(null);
+
+            if (!date) return;
+
+            const formatted = toLocalDateString(date);
+
+            if (showPicker === 'dari') {
+              setCustomDari(formatted);
+            } else {
+              setCustomSampai(formatted);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -197,8 +385,8 @@ export function LaporanKasirScreen({ navigation }: any) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -208,14 +396,14 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  headerSub: { color: "rgba(255,255,255,.55)", fontSize: 12 },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  headerSub: { color: 'rgba(255,255,255,.55)', fontSize: 12 },
   rangeRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -224,29 +412,29 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,.12)",
+    backgroundColor: 'rgba(255,255,255,.12)',
   },
-  rangeChipActive: { backgroundColor: "#fff" },
-  rangeTxt: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,.65)" },
+  rangeChipActive: { backgroundColor: '#fff' },
+  rangeTxt: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,.65)' },
   rangeTxtActive: { color: Colors.primary },
   summaryRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 14,
     marginBottom: 4,
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,.1)",
+    backgroundColor: 'rgba(255,255,255,.1)',
     borderRadius: 12,
     padding: 12,
   },
   summaryLabel: {
     fontSize: 10,
-    color: "rgba(255,255,255,.5)",
+    color: 'rgba(255,255,255,.5)',
     marginBottom: 4,
   },
-  summaryVal: { fontSize: 16, fontWeight: "800", color: "#fff" },
+  summaryVal: { fontSize: 16, fontWeight: '800', color: '#fff' },
   listContent: {
     padding: 14,
     gap: 10,
@@ -254,10 +442,10 @@ const s = StyleSheet.create({
     flexGrow: 1,
   },
   card: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -268,13 +456,74 @@ const s = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     backgroundColor: Colors.background,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rankTxt: { fontSize: 16 },
-  kasirNama: { fontSize: 15, fontWeight: "700", color: Colors.text },
+  kasirNama: { fontSize: 15, fontWeight: '700', color: Colors.text },
   kasirSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  kasirOmset: { fontSize: 14, fontWeight: "800", color: Colors.primary },
-  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
-  emptyTxt: { fontSize: 15, fontWeight: "700", color: Colors.textMuted },
+  kasirOmset: { fontSize: 14, fontWeight: '800', color: Colors.primary },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
+  emptyTxt: { fontSize: 15, fontWeight: '700', color: Colors.textMuted },
+  rangeContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+  },
+
+  customOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+
+  customModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+  },
+
+  customTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.text,
+    marginBottom: 16,
+  },
+
+  customLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 6,
+  },
+
+  customDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 12,
+  },
+
+  customDateText: {
+    fontSize: 13,
+    color: Colors.text,
+  },
+
+  customApplyBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+
+  customApplyText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
