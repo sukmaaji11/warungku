@@ -1,5 +1,5 @@
 // src/screens/main/PengaturanScreen.tsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,18 +9,22 @@ import {
   TextInput,
   Alert,
   Modal,
+  Image,
   ActivityIndicator,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { getPengaturan, setPengaturan } from "../../db/produkRepo";
-import { useAuthStore } from "../../store/authStore";
-import { Colors } from "../../constants";
-import { usePermission } from "../../hooks/usePermission";
-import { getDB } from "../../db/database";
-import * as XLSX from "xlsx";
-import * as Sharing from "expo-sharing";
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { getPengaturan, setPengaturan } from '../../db/produkRepo';
+import { useAuthStore } from '../../store/authStore';
+import { Colors } from '../../constants';
+import { usePermission } from '../../hooks/usePermission';
+import { getDB } from '../../db/database';
+import * as XLSX from 'xlsx';
+import * as Sharing from 'expo-sharing';
+import * as ImagePicker from 'expo-image-picker';
+//import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 
 type Section = {
   title: string;
@@ -34,57 +38,57 @@ type Field = {
   key: string;
   label: string;
   placeholder: string;
-  keyboard?: "default" | "numeric" | "phone-pad";
+  keyboard?: 'default' | 'numeric' | 'phone-pad';
   multiline?: boolean;
   maxLength?: number;
 };
 
 const SECTIONS: Section[] = [
   {
-    title: "Informasi Toko",
-    icon: "storefront-outline",
-    color: "#2563EB",
-    bg: "#EFF6FF",
+    title: 'Informasi Toko',
+    icon: 'storefront-outline',
+    color: '#2563EB',
+    bg: '#EFF6FF',
     fields: [
       {
-        key: "nama_toko",
-        label: "Nama Toko",
-        placeholder: "Contoh: Warung Suka Suka",
+        key: 'nama_toko',
+        label: 'Nama Toko',
+        placeholder: 'Contoh: Warung Suka Suka',
         maxLength: 50,
       },
       {
-        key: "alamat",
-        label: "Alamat",
-        placeholder: "Jl. Contoh No. 1",
+        key: 'alamat',
+        label: 'Alamat',
+        placeholder: 'Jl. Contoh No. 1',
         maxLength: 100,
       },
       {
-        key: "no_hp",
-        label: "No. HP / WA",
-        placeholder: "08123456789",
-        keyboard: "phone-pad",
+        key: 'no_hp',
+        label: 'No. HP / WA',
+        placeholder: '08123456789',
+        keyboard: 'phone-pad',
         maxLength: 13,
       },
       {
-        key: "footer_struk",
-        label: "Footer Struk",
-        placeholder: "Terima kasih!",
+        key: 'footer_struk',
+        label: 'Footer Struk',
+        placeholder: 'Terima kasih!',
         multiline: true,
         maxLength: 100,
       },
     ],
   },
   {
-    title: "Pengaturan Transaksi",
-    icon: "receipt-outline",
-    color: "#7C3AED",
-    bg: "#F5F3FF",
+    title: 'Pengaturan Transaksi',
+    icon: 'receipt-outline',
+    color: '#7C3AED',
+    bg: '#F5F3FF',
     fields: [
       {
-        key: "pajak_persen",
-        label: "Pajak (%)",
-        placeholder: "0",
-        keyboard: "numeric",
+        key: 'pajak_persen',
+        label: 'Pajak (%)',
+        placeholder: '0',
+        keyboard: 'numeric',
         maxLength: 3,
       },
     ],
@@ -94,7 +98,7 @@ const SECTIONS: Section[] = [
 // ── Export Excel ──────────────────────────────────────────────────────────────
 async function exportToExcel(): Promise<void> {
   const db = getDB();
-  const tglStr = new Date().toLocaleDateString("id-ID").replace(/\//g, "-");
+  const tglStr = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
 
   const produk = db.getAllSync(`
     SELECT p.id, p.nama, p.harga, p.harga_modal, p.stok, p.stok_minimum,
@@ -108,17 +112,17 @@ async function exportToExcel(): Promise<void> {
     produk.map((p) => ({
       ID: p.id,
       Nama: p.nama,
-      "Harga Jual": p.harga,
-      "Harga Modal": p.harga_modal,
+      'Harga Jual': p.harga,
+      'Harga Modal': p.harga_modal,
       Stok: p.stok,
-      "Stok Minimum": p.stok_minimum,
+      'Stok Minimum': p.stok_minimum,
       Satuan: p.satuan,
-      Barcode: p.barcode || "",
+      Barcode: p.barcode || '',
       // ← Kategori disimpan sebagai nama (bukan id) agar bisa di-restore
-      Kategori: p.kategori || "",
-      "Harga Grosir": p.harga_grosir || 0,
-      "Min Grosir": p.min_grosir || 0,
-      "Aktif Grosir": p.aktif_grosir || 0,
+      Kategori: p.kategori || '',
+      'Harga Grosir': p.harga_grosir || 0,
+      'Min Grosir': p.min_grosir || 0,
+      'Aktif Grosir': p.aktif_grosir || 0,
     })),
   );
 
@@ -129,12 +133,12 @@ async function exportToExcel(): Promise<void> {
 
   const wsTrx = XLSX.utils.json_to_sheet(
     transaksi.map((t) => ({
-      "No Transaksi": t.no_trx,
-      Waktu: t.waktu?.replace("T", " ").slice(0, 16) || "",
+      'No Transaksi': t.no_trx,
+      Waktu: t.waktu?.replace('T', ' ').slice(0, 16) || '',
       Subtotal: t.subtotal,
       Diskon: t.diskon,
       Total: t.total,
-      "Metode Bayar": t.metode_bayar,
+      'Metode Bayar': t.metode_bayar,
       Bayar: t.bayar,
       Kembalian: t.kembalian,
     })),
@@ -162,13 +166,13 @@ async function exportToExcel(): Promise<void> {
     `) as any[];
     wsDetail = XLSX.utils.json_to_sheet(
       detail.map((d: any) => ({
-        "No Transaksi": d.no_trx || "",
-        Waktu: d.waktu?.replace("T", " ").slice(0, 16) || "",
-        Metode: d.metode_bayar || "",
-        Produk: d.nama_produk || "",
+        'No Transaksi': d.no_trx || '',
+        Waktu: d.waktu?.replace('T', ' ').slice(0, 16) || '',
+        Metode: d.metode_bayar || '',
+        Produk: d.nama_produk || '',
         Qty: d.qty,
         Harga: d.harga,
-        "Harga Modal": d.harga_modal,
+        'Harga Modal': d.harga_modal,
         Subtotal: d.subtotal,
       })),
     );
@@ -181,9 +185,9 @@ async function exportToExcel(): Promise<void> {
     pelanggan.map((p) => ({
       ID: p.id,
       Nama: p.nama,
-      "No HP": p.no_hp || "",
-      Alamat: p.alamat || "",
-      "Total Beli": p.total_beli || 0,
+      'No HP': p.no_hp || '',
+      Alamat: p.alamat || '',
+      'Total Beli': p.total_beli || 0,
     })),
   );
 
@@ -197,7 +201,7 @@ async function exportToExcel(): Promise<void> {
         pengeluaran.map((p) => ({
           ID: p.id,
           Kategori: p.kategori,
-          Deskripsi: p.deskripsi || "",
+          Deskripsi: p.deskripsi || '',
           Jumlah: p.jumlah,
           Tanggal: p.tanggal,
         })),
@@ -206,25 +210,25 @@ async function exportToExcel(): Promise<void> {
   } catch {}
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, wsProduk, "Produk");
-  XLSX.utils.book_append_sheet(wb, wsTrx, "Transaksi");
-  if (wsDetail) XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Transaksi");
-  XLSX.utils.book_append_sheet(wb, wsPelanggan, "Pelanggan");
+  XLSX.utils.book_append_sheet(wb, wsProduk, 'Produk');
+  XLSX.utils.book_append_sheet(wb, wsTrx, 'Transaksi');
+  if (wsDetail) XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Transaksi');
+  XLSX.utils.book_append_sheet(wb, wsPelanggan, 'Pelanggan');
   if (wsPengeluaran)
-    XLSX.utils.book_append_sheet(wb, wsPengeluaran, "Pengeluaran");
+    XLSX.utils.book_append_sheet(wb, wsPengeluaran, 'Pengeluaran');
 
-  const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
+  const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' }) as string;
   const fileName = `BackupWarungKu_${tglStr}.xlsx`;
-  const FileSystemMod = require("expo-file-system/legacy");
+  const FileSystemMod = require('expo-file-system/legacy');
   const fileUri = FileSystemMod.cacheDirectory + fileName;
   await FileSystemMod.writeAsStringAsync(fileUri, wbout, {
-    encoding: "base64",
+    encoding: 'base64',
   });
   await Sharing.shareAsync(fileUri, {
     mimeType:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    dialogTitle: "Simpan / Share Backup Data",
-    UTI: "com.microsoft.excel.xlsx",
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    dialogTitle: 'Simpan / Share Backup Data',
+    UTI: 'com.microsoft.excel.xlsx',
   });
 }
 
@@ -243,7 +247,7 @@ function resetSemuaData() {
 
 // ── FIX: Helper cari atau buat kategori berdasarkan nama ─────────────────────
 function getOrCreateKategoriId(db: any, namaKategori: string): number {
-  if (!namaKategori || namaKategori.trim() === "" || namaKategori === "Semua") {
+  if (!namaKategori || namaKategori.trim() === '' || namaKategori === 'Semua') {
     return 1;
   }
   const nama = namaKategori.trim();
@@ -260,7 +264,7 @@ function getOrCreateKategoriId(db: any, namaKategori: string): number {
   // Contoh: Excel simpan "Minuman", DB punya "🥤 Minuman" → strip emoji → "Minuman" = "Minuman" ✅
   // FIX bug lama: LIKE '%Minuman%' bisa match kategori lain yang mengandung kata "Minuman"
   const stripEmoji = (s: string) =>
-    s.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, "").trim();
+    s.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').trim();
 
   const namaClean = stripEmoji(nama).toLowerCase();
   const allKat = db.getAllSync(
@@ -277,8 +281,8 @@ function getOrCreateKategoriId(db: any, namaKategori: string): number {
     const katClean = stripEmoji(kat.nama).toLowerCase();
     // Match hanya kalau nama persis ada di dalam nama kategori (bukan substring sembarangan)
     if (
-      katClean.split(" ").some((word) => word === namaClean) ||
-      namaClean.split(" ").some((word) => word === katClean)
+      katClean.split(' ').some((word) => word === namaClean) ||
+      namaClean.split(' ').some((word) => word === katClean)
     ) {
       return kat.id;
     }
@@ -308,9 +312,9 @@ export default function PengaturanScreen({ navigation }: any) {
   const { isOwner } = usePermission();
 
   const [showGantiPin, setShowGantiPin] = useState(false);
-  const [pinLama, setPinLama] = useState("");
-  const [pinBaru, setPinBaru] = useState("");
-  const [pinKonfirm, setPinKonfirm] = useState("");
+  const [pinLama, setPinLama] = useState('');
+  const [pinBaru, setPinBaru] = useState('');
+  const [pinKonfirm, setPinKonfirm] = useState('');
   const [showPinLama, setShowPinLama] = useState(false);
   const [showPinBaru, setShowPinBaru] = useState(false);
   const [showPinKonfirm, setShowPinKonfirm] = useState(false);
@@ -318,7 +322,7 @@ export default function PengaturanScreen({ navigation }: any) {
   const [exporting, setExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-  const [pinReset, setPinReset] = useState("");
+  const [pinReset, setPinReset] = useState('');
   const [showPinReset, setShowPinReset] = useState(false);
 
   useFocusEffect(
@@ -333,27 +337,66 @@ export default function PengaturanScreen({ navigation }: any) {
     setChanged(true);
   };
 
+  //====================================================================
+  //V1.5.0 - Jadicuan Developer
+  // Fungsi untuk memilih logo toko dari galeri
+  // Fitur logo toko: pilih dari galeri, tampil di header, disimpan di pengaturan
+  const pickLogo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const sourceUri = result.assets[0]?.uri;
+
+      if (!sourceUri) {
+        return;
+      }
+
+      const fileName = `logo-toko-${Date.now()}.jpg`;
+      const destination = new FileSystem.File(
+        FileSystem.Paths.document,
+        fileName,
+      );
+
+      const source = new FileSystem.File(sourceUri);
+      source.copy(destination);
+      update('logo_toko', destination.uri);
+    } catch (error) {
+      console.error('Gagal menyimpan logo:', error);
+      Alert.alert('Gagal', 'Logo tidak dapat disimpan.');
+    }
+  };
+  //====================================================================
+
   const handleSave = () => {
     setSaving(true);
     Object.entries(settings).forEach(([k, v]) => setPengaturan(k, v));
     setTimeout(() => {
       setSaving(false);
       setChanged(false);
-      Alert.alert("Tersimpan", "Pengaturan berhasil disimpan.");
+      Alert.alert('Tersimpan', 'Pengaturan berhasil disimpan.');
     }, 400);
   };
 
   const handleLogout = () => {
-    Alert.alert("Keluar", "Yakin ingin keluar?", [
-      { text: "Batal", style: "cancel" },
-      { text: "Keluar", style: "destructive", onPress: logout },
+    Alert.alert('Keluar', 'Yakin ingin keluar?', [
+      { text: 'Batal', style: 'cancel' },
+      { text: 'Keluar', style: 'destructive', onPress: logout },
     ]);
   };
 
   const resetGantiPin = () => {
-    setPinLama("");
-    setPinBaru("");
-    setPinKonfirm("");
+    setPinLama('');
+    setPinBaru('');
+    setPinKonfirm('');
     setShowPinLama(false);
     setShowPinBaru(false);
     setShowPinKonfirm(false);
@@ -362,15 +405,15 @@ export default function PengaturanScreen({ navigation }: any) {
 
   const handleGantiPin = () => {
     if (!pinLama || !pinBaru || !pinKonfirm) {
-      Alert.alert("Error", "Semua field wajib diisi");
+      Alert.alert('Error', 'Semua field wajib diisi');
       return;
     }
     if (pinBaru.length !== 6) {
-      Alert.alert("Error", "PIN baru harus 6 digit");
+      Alert.alert('Error', 'PIN baru harus 6 digit');
       return;
     }
     if (pinBaru !== pinKonfirm) {
-      Alert.alert("Error", "Konfirmasi PIN tidak cocok");
+      Alert.alert('Error', 'Konfirmasi PIN tidak cocok');
       return;
     }
     try {
@@ -379,18 +422,18 @@ export default function PengaturanScreen({ navigation }: any) {
         `SELECT * FROM users WHERE role = 'owner' LIMIT 1`,
       ) as any;
       if (!owner) {
-        Alert.alert("Error", "Akun owner tidak ditemukan");
+        Alert.alert('Error', 'Akun owner tidak ditemukan');
         return;
       }
       if (owner.pin !== pinLama) {
-        Alert.alert("Error", "PIN lama salah");
+        Alert.alert('Error', 'PIN lama salah');
         return;
       }
       db.runSync(`UPDATE users SET pin = ? WHERE id = ?`, [pinBaru, owner.id]);
-      Alert.alert("✅ Berhasil", "PIN owner berhasil diubah!");
+      Alert.alert('✅ Berhasil', 'PIN owner berhasil diubah!');
       resetGantiPin();
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Gagal mengubah PIN");
+      Alert.alert('Error', e?.message || 'Gagal mengubah PIN');
     }
   };
 
@@ -399,7 +442,7 @@ export default function PengaturanScreen({ navigation }: any) {
     try {
       await exportToExcel();
     } catch (e: any) {
-      Alert.alert("Gagal Export", e?.message || "Terjadi kesalahan");
+      Alert.alert('Gagal Export', e?.message || 'Terjadi kesalahan');
     } finally {
       setExporting(false);
     }
@@ -407,20 +450,20 @@ export default function PengaturanScreen({ navigation }: any) {
 
   const handleRestore = async () => {
     Alert.alert(
-      "Restore dari Excel",
-      "Pilih file Excel backup (.xlsx) yang ingin di-restore.",
+      'Restore dari Excel',
+      'Pilih file Excel backup (.xlsx) yang ingin di-restore.',
       [
-        { text: "Batal", style: "cancel" },
+        { text: 'Batal', style: 'cancel' },
         {
-          text: "Pilih File",
+          text: 'Pilih File',
           onPress: async () => {
             setRestoring(true);
             try {
-              const DocumentPicker = require("expo-document-picker");
-              const XLSXLib = require("xlsx");
+              const DocumentPicker = require('expo-document-picker');
+              const XLSXLib = require('xlsx');
               const res = await DocumentPicker.getDocumentAsync({
                 type: [
-                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 ],
                 copyToCacheDirectory: true,
               });
@@ -430,12 +473,12 @@ export default function PengaturanScreen({ navigation }: any) {
               }
 
               const uri = res.assets[0].uri;
-              const FileSystemMod = require("expo-file-system/legacy");
+              const FileSystemMod = require('expo-file-system/legacy');
               const base64 = await FileSystemMod.readAsStringAsync(uri, {
-                encoding: "base64",
+                encoding: 'base64',
               });
 
-              const wb = XLSXLib.read(base64, { type: "base64" });
+              const wb = XLSXLib.read(base64, { type: 'base64' });
               const db = getDB();
               let produkCount = 0,
                 pelangganCount = 0,
@@ -454,9 +497,9 @@ export default function PengaturanScreen({ navigation }: any) {
                   try {
                     const no_trx = get(
                       row,
-                      "No Transaksi",
-                      "no_trx",
-                      "noTrx",
+                      'No Transaksi',
+                      'no_trx',
+                      'noTrx',
                     ).trim();
                     if (!no_trx) continue;
                     // Skip jika sudah ada
@@ -471,22 +514,22 @@ export default function PengaturanScreen({ navigation }: any) {
                     }
 
                     const subtotal =
-                      parseInt(get(row, "Subtotal", "subtotal") || "0") || 0;
+                      parseInt(get(row, 'Subtotal', 'subtotal') || '0') || 0;
                     const diskon =
-                      parseInt(get(row, "Diskon", "diskon") || "0") || 0;
+                      parseInt(get(row, 'Diskon', 'diskon') || '0') || 0;
                     const total =
-                      parseInt(get(row, "Total", "total") || "0") || 0;
+                      parseInt(get(row, 'Total', 'total') || '0') || 0;
                     const bayar =
-                      parseInt(get(row, "Bayar", "bayar") || "0") || 0;
+                      parseInt(get(row, 'Bayar', 'bayar') || '0') || 0;
                     const kembalian =
-                      parseInt(get(row, "Kembalian", "kembalian") || "0") || 0;
+                      parseInt(get(row, 'Kembalian', 'kembalian') || '0') || 0;
                     const metode =
-                      get(row, "Metode Bayar", "metode_bayar", "metode") ||
-                      "tunai";
+                      get(row, 'Metode Bayar', 'metode_bayar', 'metode') ||
+                      'tunai';
                     const waktu =
-                      get(row, "Waktu", "waktu") ||
-                      new Date().toISOString().slice(0, 16).replace("T", " ");
-                    const kasir = get(row, "Kasir", "kasir") || "Admin";
+                      get(row, 'Waktu', 'waktu') ||
+                      new Date().toISOString().slice(0, 16).replace('T', ' ');
+                    const kasir = get(row, 'Kasir', 'kasir') || 'Admin';
 
                     const res = db.runSync(
                       `INSERT INTO transaksi (no_trx,subtotal,diskon,total,bayar,kembalian,metode_bayar,kasir,waktu)
@@ -506,7 +549,7 @@ export default function PengaturanScreen({ navigation }: any) {
                     trxHeaderMap[no_trx] = res.lastInsertRowId;
                     trxCount++;
                   } catch (err: any) {
-                    errorLog.push("T:" + err?.message?.slice(0, 40));
+                    errorLog.push('T:' + err?.message?.slice(0, 40));
                   }
                 }
               };
@@ -519,9 +562,9 @@ export default function PengaturanScreen({ navigation }: any) {
                   try {
                     const no_trx = get(
                       row,
-                      "No Transaksi",
-                      "no_trx",
-                      "noTrx",
+                      'No Transaksi',
+                      'no_trx',
+                      'noTrx',
                     ).trim();
                     if (!no_trx) continue;
                     // Dapatkan transaksi_id — cari dari map atau dari DB
@@ -537,21 +580,21 @@ export default function PengaturanScreen({ navigation }: any) {
                     }
                     const nama_produk = get(
                       row,
-                      "Produk",
-                      "nama_produk",
-                      "Nama Produk",
+                      'Produk',
+                      'nama_produk',
+                      'Nama Produk',
                     ).trim();
                     if (!nama_produk) continue;
-                    const qty = parseInt(get(row, "Qty", "qty") || "1") || 1;
+                    const qty = parseInt(get(row, 'Qty', 'qty') || '1') || 1;
                     const harga =
                       parseInt(
-                        get(row, "Harga", "harga", "Harga Jual") || "0",
+                        get(row, 'Harga', 'harga', 'Harga Jual') || '0',
                       ) || 0;
                     const subtotal =
-                      parseInt(get(row, "Subtotal", "subtotal") || "0") ||
+                      parseInt(get(row, 'Subtotal', 'subtotal') || '0') ||
                       qty * harga;
                     const harga_modal =
-                      parseInt(get(row, "Harga Modal", "harga_modal") || "0") ||
+                      parseInt(get(row, 'Harga Modal', 'harga_modal') || '0') ||
                       0;
                     // Cari produk_id dari nama
                     const produk = db.getFirstSync(
@@ -572,7 +615,7 @@ export default function PengaturanScreen({ navigation }: any) {
                     );
                     trxItemCount++;
                   } catch (err: any) {
-                    errorLog.push("TI:" + err?.message?.slice(0, 40));
+                    errorLog.push('TI:' + err?.message?.slice(0, 40));
                   }
                 }
               };
@@ -580,10 +623,10 @@ export default function PengaturanScreen({ navigation }: any) {
 
               const get = (row: any, ...keys: string[]): string => {
                 for (const k of keys) {
-                  if (row[k] !== undefined && row[k] !== null && row[k] !== "")
+                  if (row[k] !== undefined && row[k] !== null && row[k] !== '')
                     return row[k].toString();
                 }
-                return "";
+                return '';
               };
 
               const restoreProduk = (sheetName: string) => {
@@ -594,11 +637,11 @@ export default function PengaturanScreen({ navigation }: any) {
                   try {
                     const nama = get(
                       row,
-                      "Nama",
-                      "nama",
-                      "NAMA",
-                      "Name",
-                      "product_name",
+                      'Nama',
+                      'nama',
+                      'NAMA',
+                      'Name',
+                      'product_name',
                     ).trim();
                     if (!nama) continue;
 
@@ -606,40 +649,40 @@ export default function PengaturanScreen({ navigation }: any) {
                       parseInt(
                         get(
                           row,
-                          "Harga Jual",
-                          "Harga",
-                          "harga",
-                          "HARGA",
-                          "price",
-                        ) || "0",
+                          'Harga Jual',
+                          'Harga',
+                          'harga',
+                          'HARGA',
+                          'price',
+                        ) || '0',
                       ) || 0;
                     const harga_modal =
                       parseInt(
-                        get(row, "Harga Modal", "harga_modal", "Modal") || "0",
+                        get(row, 'Harga Modal', 'harga_modal', 'Modal') || '0',
                       ) || 0;
                     const stok =
                       parseInt(
-                        get(row, "Stok", "stok", "Stock", "qty") || "0",
+                        get(row, 'Stok', 'stok', 'Stock', 'qty') || '0',
                       ) || 0;
                     const stok_min =
                       parseInt(
-                        get(row, "Stok Minimum", "stok_minimum") || "5",
+                        get(row, 'Stok Minimum', 'stok_minimum') || '5',
                       ) || 5;
                     const satuan =
-                      get(row, "Satuan", "satuan", "Unit") || "pcs";
-                    const barcode = get(row, "Barcode", "barcode") || null;
+                      get(row, 'Satuan', 'satuan', 'Unit') || 'pcs';
+                    const barcode = get(row, 'Barcode', 'barcode') || null;
 
                     // Grosir — opsional, default 0 jika tidak ada di file lama
                     const harga_grosir =
                       parseInt(
-                        get(row, "Harga Grosir", "harga_grosir") || "0",
+                        get(row, 'Harga Grosir', 'harga_grosir') || '0',
                       ) || 0;
                     const min_grosir =
-                      parseInt(get(row, "Min Grosir", "min_grosir") || "0") ||
+                      parseInt(get(row, 'Min Grosir', 'min_grosir') || '0') ||
                       0;
                     const aktif_grosir =
                       parseInt(
-                        get(row, "Aktif Grosir", "aktif_grosir") || "0",
+                        get(row, 'Aktif Grosir', 'aktif_grosir') || '0',
                       ) || 0;
 
                     // ── FIX UTAMA: baca nama kategori dari Excel, cari/buat id-nya ──
@@ -647,9 +690,9 @@ export default function PengaturanScreen({ navigation }: any) {
                     // Sekarang: resolve nama kategori ke id yang benar
                     const namaKategori = get(
                       row,
-                      "Kategori",
-                      "kategori",
-                      "Category",
+                      'Kategori',
+                      'kategori',
+                      'Category',
                     );
                     const kategori_id = getOrCreateKategoriId(db, namaKategori);
 
@@ -704,7 +747,7 @@ export default function PengaturanScreen({ navigation }: any) {
                     }
                     produkCount++;
                   } catch (err: any) {
-                    errorLog.push("P:" + err?.message?.slice(0, 40));
+                    errorLog.push('P:' + err?.message?.slice(0, 40));
                   }
                 }
               };
@@ -717,23 +760,23 @@ export default function PengaturanScreen({ navigation }: any) {
                   try {
                     const nama = get(
                       row,
-                      "Nama",
-                      "nama",
-                      "NAMA",
-                      "Name",
+                      'Nama',
+                      'nama',
+                      'NAMA',
+                      'Name',
                     ).trim();
                     if (!nama) continue;
                     const no_hp = get(
                       row,
-                      "No HP",
-                      "no_hp",
-                      "NoHP",
-                      "Phone",
-                      "Telepon",
+                      'No HP',
+                      'no_hp',
+                      'NoHP',
+                      'Phone',
+                      'Telepon',
                     );
-                    const alamat = get(row, "Alamat", "alamat", "Address");
+                    const alamat = get(row, 'Alamat', 'alamat', 'Address');
                     const total_beli =
-                      parseInt(get(row, "Total Beli", "total_beli") || "0") ||
+                      parseInt(get(row, 'Total Beli', 'total_beli') || '0') ||
                       0;
                     const ex = db.getFirstSync(
                       `SELECT id FROM pelanggan WHERE nama=? LIMIT 1`,
@@ -747,7 +790,7 @@ export default function PengaturanScreen({ navigation }: any) {
                     }
                     pelangganCount++;
                   } catch (err: any) {
-                    errorLog.push("L:" + err?.message?.slice(0, 40));
+                    errorLog.push('L:' + err?.message?.slice(0, 40));
                   }
                 }
               };
@@ -756,22 +799,22 @@ export default function PengaturanScreen({ navigation }: any) {
               // Pass 1: produk, pelanggan, dan header transaksi dulu
               for (const name of allSheets) {
                 const lower = name.toLowerCase();
-                if (lower.includes("pelanggan") || lower.includes("customer")) {
+                if (lower.includes('pelanggan') || lower.includes('customer')) {
                   restorePelanggan(name);
                 } else if (
-                  lower.includes("detail") &&
-                  (lower.includes("transaksi") || lower.includes("item"))
+                  lower.includes('detail') &&
+                  (lower.includes('transaksi') || lower.includes('item'))
                 ) {
                   // Skip dulu — detail diproses setelah header transaksi selesai
                 } else if (
-                  lower.includes("transaksi") ||
-                  lower.includes("transaction")
+                  lower.includes('transaksi') ||
+                  lower.includes('transaction')
                 ) {
                   restoreTransaksi(name);
                 } else if (
-                  lower.includes("produk") ||
-                  lower.includes("product") ||
-                  lower.includes("sheet")
+                  lower.includes('produk') ||
+                  lower.includes('product') ||
+                  lower.includes('sheet')
                 ) {
                   restoreProduk(name);
                 }
@@ -780,8 +823,8 @@ export default function PengaturanScreen({ navigation }: any) {
               for (const name of allSheets) {
                 const lower = name.toLowerCase();
                 if (
-                  lower.includes("detail") &&
-                  (lower.includes("transaksi") || lower.includes("item"))
+                  lower.includes('detail') &&
+                  (lower.includes('transaksi') || lower.includes('item'))
                 ) {
                   restoreDetailTransaksi(name);
                 }
@@ -796,11 +839,11 @@ export default function PengaturanScreen({ navigation }: any) {
 
               let msg = `${produkCount} produk, ${pelangganCount} pelanggan, ${trxCount} transaksi, ${trxItemCount} item berhasil di-restore.`;
               if (errorLog.length > 0) msg += `\n(${errorLog.length} error)`;
-              Alert.alert("✅ Restore Selesai", msg);
+              Alert.alert('✅ Restore Selesai', msg);
             } catch (e: any) {
               Alert.alert(
-                "Gagal Restore",
-                e?.message || "Terjadi kesalahan saat membaca file.",
+                'Gagal Restore',
+                e?.message || 'Terjadi kesalahan saat membaca file.',
               );
             } finally {
               setRestoring(false);
@@ -818,24 +861,24 @@ export default function PengaturanScreen({ navigation }: any) {
         `SELECT * FROM users WHERE role = 'owner' LIMIT 1`,
       ) as any;
       if (!owner) {
-        Alert.alert("Error", "Akun owner tidak ditemukan");
+        Alert.alert('Error', 'Akun owner tidak ditemukan');
         return;
       }
       if (owner.pin !== pinReset) {
-        Alert.alert("Error", "PIN owner salah");
+        Alert.alert('Error', 'PIN owner salah');
         return;
       }
       resetSemuaData();
-      setPinReset("");
+      setPinReset('');
       setShowResetModal(false);
-      Alert.alert("✅ Reset Selesai", "Semua data telah dihapus.");
+      Alert.alert('✅ Reset Selesai', 'Semua data telah dihapus.');
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Gagal reset data");
+      Alert.alert('Error', e?.message || 'Gagal reset data');
     }
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <View>
           <Text style={s.headerTitle}>Pengaturan</Text>
@@ -845,10 +888,11 @@ export default function PengaturanScreen({ navigation }: any) {
           <TouchableOpacity
             style={[s.saveBtn, saving && { opacity: 0.6 }]}
             onPress={handleSave}
-            disabled={saving}>
+            disabled={saving}
+          >
             <Ionicons name="checkmark" size={16} color="#fff" />
             <Text style={s.saveBtnTxt}>
-              {saving ? "Menyimpan..." : "Simpan"}
+              {saving ? 'Menyimpan...' : 'Simpan'}
             </Text>
           </TouchableOpacity>
         )}
@@ -857,18 +901,35 @@ export default function PengaturanScreen({ navigation }: any) {
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         {/* Profile */}
         <View style={s.profileCard}>
+          {/* Logo toko - v1.5.0 By Jadicuan Developer 
           <View style={s.profileAvatar}>
             <Ionicons name="storefront" size={28} color="#fff" />
           </View>
+          */}
+          <TouchableOpacity
+            style={s.profileAvatar}
+            onPress={pickLogo}
+            activeOpacity={0.8}
+          >
+            {settings.logo_toko ? (
+              <Image
+                source={{ uri: settings.logo_toko }}
+                style={s.profileLogo}
+              />
+            ) : (
+              <Ionicons name="storefront" size={28} color="#fff" />
+            )}
+          </TouchableOpacity>
           <View style={s.profileInfo}>
             <Text style={s.profileNama}>
-              {settings.nama_toko || "Nama Toko"}
+              {settings.nama_toko || 'Nama Toko'}
             </Text>
             <Text style={s.profileAlamat}>
-              {settings.alamat || "Belum diatur"}
+              {settings.alamat || 'Belum diatur'}
             </Text>
             <View style={s.licenseBadge}>
               <Ionicons name="shield-checkmark" size={11} color="#16A34A" />
@@ -896,14 +957,14 @@ export default function PengaturanScreen({ navigation }: any) {
                         s.fieldInput,
                         field.multiline && {
                           minHeight: 60,
-                          textAlignVertical: "top",
+                          textAlignVertical: 'top',
                         },
                       ]}
-                      value={settings[field.key] || ""}
+                      value={settings[field.key] || ''}
                       onChangeText={(v) => update(field.key, v)}
                       placeholder={field.placeholder}
                       placeholderTextColor="#D1D5DB"
-                      keyboardType={field.keyboard || "default"}
+                      keyboardType={field.keyboard || 'default'}
                       multiline={field.multiline}
                       maxLength={field.maxLength}
                     />
@@ -925,7 +986,8 @@ export default function PengaturanScreen({ navigation }: any) {
                 style={[
                   s.sectionIcon,
                   { backgroundColor: Colors.primaryLight },
-                ]}>
+                ]}
+              >
                 <Ionicons
                   name="people-outline"
                   size={16}
@@ -937,12 +999,14 @@ export default function PengaturanScreen({ navigation }: any) {
             <View style={s.sectionCard}>
               <TouchableOpacity
                 style={s.menuRow}
-                onPress={() => navigation.navigate("ManajemenUser")}>
+                onPress={() => navigation.navigate('ManajemenUser')}
+              >
                 <View
                   style={[
                     s.menuRowIcon,
                     { backgroundColor: Colors.primaryLight },
-                  ]}>
+                  ]}
+                >
                   <Ionicons
                     name="people-outline"
                     size={18}
@@ -958,8 +1022,9 @@ export default function PengaturanScreen({ navigation }: any) {
               <View style={s.fieldDivider} />
               <TouchableOpacity
                 style={s.menuRow}
-                onPress={() => setShowGantiPin(true)}>
-                <View style={[s.menuRowIcon, { backgroundColor: "#FFF7ED" }]}>
+                onPress={() => setShowGantiPin(true)}
+              >
+                <View style={[s.menuRowIcon, { backgroundColor: '#FFF7ED' }]}>
                   <Ionicons name="key-outline" size={18} color="#EA580C" />
                 </View>
                 <View style={s.menuRowInfo}>
@@ -975,7 +1040,7 @@ export default function PengaturanScreen({ navigation }: any) {
         {/* Printer */}
         <View style={s.sectionWrap}>
           <View style={s.sectionHeader}>
-            <View style={[s.sectionIcon, { backgroundColor: "#FFF7ED" }]}>
+            <View style={[s.sectionIcon, { backgroundColor: '#FFF7ED' }]}>
               <Ionicons name="print-outline" size={16} color="#EA580C" />
             </View>
             <Text style={s.sectionTitle}>Printer & Struk</Text>
@@ -983,33 +1048,35 @@ export default function PengaturanScreen({ navigation }: any) {
           <View style={s.sectionCard}>
             {[
               {
-                label: "Printer Bluetooth",
-                sub: "Hubungkan printer thermal 58mm",
-                icon: "bluetooth-outline",
-                color: "#2563EB",
+                label: 'Printer Bluetooth',
+                sub: 'Hubungkan printer thermal 58mm',
+                icon: 'bluetooth-outline',
+                color: '#2563EB',
               },
               {
-                label: "Printer WiFi",
-                sub: "Hubungkan via jaringan WiFi",
-                icon: "wifi-outline",
-                color: "#16A34A",
+                label: 'Printer WiFi',
+                sub: 'Hubungkan via jaringan WiFi',
+                icon: 'wifi-outline',
+                color: '#16A34A',
               },
               {
-                label: "Ukuran Kertas",
-                sub: "58mm / 80mm",
-                icon: "resize-outline",
-                color: "#7C3AED",
+                label: 'Ukuran Kertas',
+                sub: '58mm / 80mm',
+                icon: 'resize-outline',
+                color: '#7C3AED',
               },
             ].map((item, i, arr) => (
               <View key={item.label}>
                 <TouchableOpacity
                   style={s.menuRow}
-                  onPress={() => navigation.navigate("Printer")}>
+                  onPress={() => navigation.navigate('Printer')}
+                >
                   <View
                     style={[
                       s.menuRowIcon,
-                      { backgroundColor: item.color + "20" },
-                    ]}>
+                      { backgroundColor: item.color + '20' },
+                    ]}
+                  >
                     <Ionicons
                       name={item.icon as any}
                       size={18}
@@ -1031,7 +1098,7 @@ export default function PengaturanScreen({ navigation }: any) {
         {/* Backup & Data */}
         <View style={s.sectionWrap}>
           <View style={s.sectionHeader}>
-            <View style={[s.sectionIcon, { backgroundColor: "#F0FDF4" }]}>
+            <View style={[s.sectionIcon, { backgroundColor: '#F0FDF4' }]}>
               <Ionicons name="cloud-outline" size={16} color="#16A34A" />
             </View>
             <Text style={s.sectionTitle}>Backup & Data</Text>
@@ -1040,8 +1107,9 @@ export default function PengaturanScreen({ navigation }: any) {
             <TouchableOpacity
               style={s.menuRow}
               onPress={handleExport}
-              disabled={exporting}>
-              <View style={[s.menuRowIcon, { backgroundColor: "#F0FDF4" }]}>
+              disabled={exporting}
+            >
+              <View style={[s.menuRowIcon, { backgroundColor: '#F0FDF4' }]}>
                 {exporting ? (
                   <ActivityIndicator size="small" color="#16A34A" />
                 ) : (
@@ -1050,7 +1118,7 @@ export default function PengaturanScreen({ navigation }: any) {
               </View>
               <View style={s.menuRowInfo}>
                 <Text style={s.menuRowLabel}>
-                  {exporting ? "Menyiapkan file..." : "Backup ke Excel (.xlsx)"}
+                  {exporting ? 'Menyiapkan file...' : 'Backup ke Excel (.xlsx)'}
                 </Text>
                 <Text style={s.menuRowSub}>
                   Produk · Transaksi · Pelanggan · Pengeluaran
@@ -1066,8 +1134,9 @@ export default function PengaturanScreen({ navigation }: any) {
             <TouchableOpacity
               style={s.menuRow}
               onPress={handleRestore}
-              disabled={restoring}>
-              <View style={[s.menuRowIcon, { backgroundColor: "#EFF6FF" }]}>
+              disabled={restoring}
+            >
+              <View style={[s.menuRowIcon, { backgroundColor: '#EFF6FF' }]}>
                 {restoring ? (
                   <ActivityIndicator size="small" color="#2563EB" />
                 ) : (
@@ -1080,7 +1149,7 @@ export default function PengaturanScreen({ navigation }: any) {
               </View>
               <View style={s.menuRowInfo}>
                 <Text style={s.menuRowLabel}>
-                  {restoring ? "Mengimpor data..." : "Restore dari Excel"}
+                  {restoring ? 'Mengimpor data...' : 'Restore dari Excel'}
                 </Text>
                 <Text style={s.menuRowSub}>
                   Import produk & pelanggan dari file backup
@@ -1097,26 +1166,27 @@ export default function PengaturanScreen({ navigation }: any) {
               style={s.menuRow}
               onPress={() =>
                 Alert.alert(
-                  "⚠️ Reset Data",
-                  "Semua transaksi, produk, dan pelanggan akan dihapus permanen.\n\nSebaiknya export Excel dulu sebelum reset.",
+                  '⚠️ Reset Data',
+                  'Semua transaksi, produk, dan pelanggan akan dihapus permanen.\n\nSebaiknya export Excel dulu sebelum reset.',
                   [
-                    { text: "Batal", style: "cancel" },
+                    { text: 'Batal', style: 'cancel' },
                     {
-                      text: "Lanjut Reset",
-                      style: "destructive",
+                      text: 'Lanjut Reset',
+                      style: 'destructive',
                       onPress: () => {
-                        setPinReset("");
+                        setPinReset('');
                         setShowResetModal(true);
                       },
                     },
                   ],
                 )
-              }>
-              <View style={[s.menuRowIcon, { backgroundColor: "#FEF2F2" }]}>
+              }
+            >
+              <View style={[s.menuRowIcon, { backgroundColor: '#FEF2F2' }]}>
                 <Ionicons name="trash-outline" size={18} color="#EF4444" />
               </View>
               <View style={s.menuRowInfo}>
-                <Text style={[s.menuRowLabel, { color: "#EF4444" }]}>
+                <Text style={[s.menuRowLabel, { color: '#EF4444' }]}>
                   Reset Data
                 </Text>
                 <Text style={s.menuRowSub}>Hapus semua data toko</Text>
@@ -1130,8 +1200,8 @@ export default function PengaturanScreen({ navigation }: any) {
         <View style={s.sectionWrap}>
           <View style={s.sectionCard}>
             {[
-              { label: "Versi Aplikasi", val: "Kasir WarungKu v1.0.0" },
-              { label: "Status Lisensi", val: "✅ Aktif" },
+              { label: 'Versi Aplikasi', val: 'Kasir WarungKu v1.0.0' },
+              { label: 'Status Lisensi', val: '✅ Aktif' },
             ].map((item, i, arr) => (
               <View key={item.label}>
                 <View style={s.infoRow}>
@@ -1153,11 +1223,11 @@ export default function PengaturanScreen({ navigation }: any) {
 
       {/* Modal Ganti PIN */}
       <Modal visible={showGantiPin} transparent animationType="slide">
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           <TouchableOpacity
             style={[
               StyleSheet.absoluteFillObject,
-              { backgroundColor: "rgba(0,0,0,0.5)" },
+              { backgroundColor: 'rgba(0,0,0,0.5)' },
             ]}
             onPress={resetGantiPin}
             activeOpacity={1}
@@ -1178,28 +1248,28 @@ export default function PengaturanScreen({ navigation }: any) {
             </View>
             {[
               {
-                label: "PIN LAMA",
+                label: 'PIN LAMA',
                 val: pinLama,
                 set: setPinLama,
                 show: showPinLama,
                 setShow: setShowPinLama,
-                ph: "Masukkan PIN lama",
+                ph: 'Masukkan PIN lama',
               },
               {
-                label: "PIN BARU (min. 6 digit)",
+                label: 'PIN BARU (min. 6 digit)',
                 val: pinBaru,
                 set: setPinBaru,
                 show: showPinBaru,
                 setShow: setShowPinBaru,
-                ph: "Masukkan PIN baru (6 digit)",
+                ph: 'Masukkan PIN baru (6 digit)',
               },
               {
-                label: "KONFIRMASI PIN BARU",
+                label: 'KONFIRMASI PIN BARU',
                 val: pinKonfirm,
                 set: setPinKonfirm,
                 show: showPinKonfirm,
                 setShow: setShowPinKonfirm,
-                ph: "Ulangi PIN baru",
+                ph: 'Ulangi PIN baru',
               },
             ].map((f, i) => (
               <View key={i}>
@@ -1211,7 +1281,8 @@ export default function PengaturanScreen({ navigation }: any) {
                       pinBaru &&
                       pinKonfirm &&
                       pinBaru !== pinKonfirm && { borderColor: Colors.danger },
-                  ]}>
+                  ]}
+                >
                   <TextInput
                     style={pin.input}
                     value={f.val}
@@ -1223,9 +1294,10 @@ export default function PengaturanScreen({ navigation }: any) {
                     placeholderTextColor={Colors.textDisabled}
                   />
                   <TouchableOpacity
-                    onPress={() => f.setShow((v: boolean) => !v)}>
+                    onPress={() => f.setShow((v: boolean) => !v)}
+                  >
                     <Ionicons
-                      name={f.show ? "eye-off-outline" : "eye-outline"}
+                      name={f.show ? 'eye-off-outline' : 'eye-outline'}
                       size={18}
                       color={Colors.textMuted}
                     />
@@ -1237,7 +1309,8 @@ export default function PengaturanScreen({ navigation }: any) {
                       fontSize: 11,
                       color: Colors.danger,
                       marginTop: 4,
-                    }}>
+                    }}
+                  >
                     PIN tidak cocok
                   </Text>
                 )}
@@ -1258,7 +1331,8 @@ export default function PengaturanScreen({ navigation }: any) {
                 disabled={
                   !pinLama || !pinBaru || !pinKonfirm || pinBaru !== pinKonfirm
                 }
-                onPress={handleGantiPin}>
+                onPress={handleGantiPin}
+              >
                 <Ionicons
                   name="checkmark-circle-outline"
                   size={18}
@@ -1276,43 +1350,48 @@ export default function PengaturanScreen({ navigation }: any) {
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            justifyContent: "center",
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'center',
             padding: 24,
-          }}>
+          }}
+        >
           <View
-            style={{ backgroundColor: "#fff", borderRadius: 20, padding: 24 }}>
-            <View style={{ alignItems: "center", marginBottom: 20 }}>
+            style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24 }}
+          >
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <View
                 style={{
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: "#FEF2F2",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  backgroundColor: '#FEF2F2',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   marginBottom: 12,
-                }}>
+                }}
+              >
                 <Ionicons name="warning-outline" size={32} color="#EF4444" />
               </View>
               <Text
                 style={{
                   fontSize: 18,
-                  fontWeight: "800",
-                  color: "#111",
-                  textAlign: "center",
-                }}>
+                  fontWeight: '800',
+                  color: '#111',
+                  textAlign: 'center',
+                }}
+              >
                 Konfirmasi Reset
               </Text>
               <Text
                 style={{
                   fontSize: 13,
-                  color: "#6B7280",
-                  textAlign: "center",
+                  color: '#6B7280',
+                  textAlign: 'center',
                   marginTop: 6,
                   lineHeight: 18,
-                }}>
-                Masukkan PIN owner untuk{"\n"}mengkonfirmasi reset data.
+                }}
+              >
+                Masukkan PIN owner untuk{'\n'}mengkonfirmasi reset data.
               </Text>
             </View>
             <Text style={pin.label}>PIN OWNER</Text>
@@ -1330,26 +1409,27 @@ export default function PengaturanScreen({ navigation }: any) {
               />
               <TouchableOpacity onPress={() => setShowPinReset((v) => !v)}>
                 <Ionicons
-                  name={showPinReset ? "eye-off-outline" : "eye-outline"}
+                  name={showPinReset ? 'eye-off-outline' : 'eye-outline'}
                   size={18}
                   color={Colors.textMuted}
                 />
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 20 }}>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
                   padding: 14,
                   borderRadius: 12,
-                  backgroundColor: "#F3F4F6",
-                  alignItems: "center",
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
                 }}
                 onPress={() => {
                   setShowResetModal(false);
-                  setPinReset("");
-                }}>
-                <Text style={{ fontWeight: "700", color: "#6B7280" }}>
+                  setPinReset('');
+                }}
+              >
+                <Text style={{ fontWeight: '700', color: '#6B7280' }}>
                   Batal
                 </Text>
               </TouchableOpacity>
@@ -1359,14 +1439,15 @@ export default function PengaturanScreen({ navigation }: any) {
                     flex: 2,
                     padding: 14,
                     borderRadius: 12,
-                    backgroundColor: "#EF4444",
-                    alignItems: "center",
+                    backgroundColor: '#EF4444',
+                    alignItems: 'center',
                   },
                   !pinReset && { opacity: 0.5 },
                 ]}
                 disabled={!pinReset}
-                onPress={handleResetKonfirm}>
-                <Text style={{ fontWeight: "800", color: "#fff" }}>
+                onPress={handleResetKonfirm}
+              >
+                <Text style={{ fontWeight: '800', color: '#fff' }}>
                   Reset Sekarang
                 </Text>
               </TouchableOpacity>
@@ -1381,70 +1462,75 @@ export default function PengaturanScreen({ navigation }: any) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
   },
   headerTitle: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 22,
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: -0.3,
   },
-  headerSub: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 2 },
   saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
-    backgroundColor: "#22C55E",
+    backgroundColor: '#22C55E',
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 22,
   },
-  saveBtnTxt: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  scroll: { flex: 1, backgroundColor: "#F3F4F6" },
+  saveBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  scroll: { flex: 1, backgroundColor: '#F3F4F6' },
   content: { padding: 16, paddingBottom: 32 },
   profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 18,
     padding: 16,
     marginBottom: 20,
     borderWidth: 0.5,
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
   },
   profileAvatar: {
     width: 56,
     height: 56,
     borderRadius: 16,
     backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileLogo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
   },
   profileInfo: { flex: 1 },
-  profileNama: { fontSize: 16, fontWeight: "800", color: "#111827" },
-  profileAlamat: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
+  profileNama: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  profileAlamat: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   licenseBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     marginTop: 6,
   },
-  licenseTxt: { fontSize: 10, fontWeight: "700", color: "#16A34A" },
+  licenseTxt: { fontSize: 10, fontWeight: '700', color: '#16A34A' },
   sectionWrap: { marginBottom: 16 },
   sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     marginBottom: 8,
   },
@@ -1452,35 +1538,35 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionTitle: { fontSize: 13, fontWeight: "700", color: "#374151" },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#374151' },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 16,
     borderWidth: 0.5,
-    borderColor: "#E5E7EB",
-    overflow: "hidden",
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
   },
   fieldRow: { paddingHorizontal: 16, paddingVertical: 12 },
   fieldLabel: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "#9CA3AF",
+    fontWeight: '600',
+    color: '#9CA3AF',
     marginBottom: 5,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  fieldInput: { fontSize: 14, color: "#111827", fontWeight: "500" },
+  fieldInput: { fontSize: 14, color: '#111827', fontWeight: '500' },
   fieldDivider: {
     height: 0.5,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: '#F3F4F6',
     marginHorizontal: 16,
   },
   menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 13,
@@ -1489,38 +1575,38 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuRowInfo: { flex: 1 },
-  menuRowLabel: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  menuRowSub: { fontSize: 11, color: "#9CA3AF", marginTop: 1 },
+  menuRowLabel: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  menuRowSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
   infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  infoLabel: { fontSize: 13, color: "#9CA3AF" },
-  infoVal: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  infoLabel: { fontSize: 13, color: '#9CA3AF' },
+  infoVal: { fontSize: 13, fontWeight: '600', color: '#374151' },
   logoutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: '#FEF2F2',
     borderRadius: 14,
     padding: 15,
     borderWidth: 0.5,
-    borderColor: "#FECACA",
+    borderColor: '#FECACA',
   },
-  logoutTxt: { fontSize: 14, fontWeight: "700", color: "#EF4444" },
+  logoutTxt: { fontSize: 14, fontWeight: '700', color: '#EF4444' },
 });
 
 const pin = StyleSheet.create({
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1531,12 +1617,12 @@ const pin = StyleSheet.create({
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     marginBottom: 24,
   },
@@ -1544,23 +1630,23 @@ const pin = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 13,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: { fontSize: 17, fontWeight: "800", color: Colors.text },
+  title: { fontSize: 17, fontWeight: '800', color: Colors.text },
   sub: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   label: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textMuted,
     marginBottom: 8,
     marginTop: 14,
     letterSpacing: 0.5,
   },
   inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.background,
     borderRadius: 12,
     borderWidth: 1,
@@ -1574,24 +1660,24 @@ const pin = StyleSheet.create({
     color: Colors.text,
     letterSpacing: 2,
   },
-  btns: { flexDirection: "row", gap: 10, marginTop: 24 },
+  btns: { flexDirection: 'row', gap: 10, marginTop: 24 },
   btnBatal: {
     flex: 1,
     padding: 14,
     borderRadius: 12,
     backgroundColor: Colors.background,
-    alignItems: "center",
+    alignItems: 'center',
   },
-  btnBatalTxt: { fontWeight: "700", color: Colors.textMuted },
+  btnBatalTxt: { fontWeight: '700', color: Colors.textMuted },
   btnSimpan: {
     flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     padding: 14,
     borderRadius: 12,
     backgroundColor: Colors.primary,
   },
-  btnSimpanTxt: { fontWeight: "800", color: "#fff" },
+  btnSimpanTxt: { fontWeight: '800', color: '#fff' },
 });

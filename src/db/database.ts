@@ -1,18 +1,18 @@
-import * as SQLite from "expo-sqlite";
+import * as SQLite from 'expo-sqlite';
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
 export function getDB(): SQLite.SQLiteDatabase {
   if (!_db) {
-    console.log("[DB] opening database...");
-    _db = SQLite.openDatabaseSync("kasirku.db");
-    console.log("[DB] database opened");
+    console.log('[DB] opening database...');
+    _db = SQLite.openDatabaseSync('kasirku.db');
+    console.log('[DB] database opened');
   }
   return _db;
 }
 
 export async function initDB(): Promise<void> {
-  console.log("[DB] initDB START");
+  console.log('[DB] initDB START');
   const db = getDB();
 
   // ── Tabel utama ───────────────────────────────────────────────────────────
@@ -133,38 +133,38 @@ export async function initDB(): Promise<void> {
           (11, '📱 Layanan & Digital'),
           (12, '📦 Lainnya')
       `);
-      console.log("[DB] kategori default inserted (first run)");
+      console.log('[DB] kategori default inserted (first run)');
     } else {
       // Sudah ada → jangan insert apapun, hormati perubahan user
-      console.log("[DB] kategori sudah ada, skip insert default");
+      console.log('[DB] kategori sudah ada, skip insert default');
     }
   } catch (e) {
-    console.warn("[DB] kategori init error:", e);
+    console.warn('[DB] kategori init error:', e);
   }
 
   // ── Migrasi kolom — aman untuk semua device (skip jika sudah ada) ─────────
   const migrations = [
-    "ALTER TABLE produk ADD COLUMN gambar TEXT",
-    "ALTER TABLE transaksi ADD COLUMN kasir TEXT",
-    "ALTER TABLE transaksi ADD COLUMN diskon_nominal INTEGER DEFAULT 0",
+    'ALTER TABLE produk ADD COLUMN gambar TEXT',
+    'ALTER TABLE transaksi ADD COLUMN kasir TEXT',
+    'ALTER TABLE transaksi ADD COLUMN diskon_nominal INTEGER DEFAULT 0',
 
     // PAJAK — transaksi lama otomatis 0
-    "ALTER TABLE transaksi ADD COLUMN pajak INTEGER DEFAULT 0",
-    "ALTER TABLE transaksi ADD COLUMN pajak_persen REAL DEFAULT 0",
+    'ALTER TABLE transaksi ADD COLUMN pajak INTEGER DEFAULT 0',
+    'ALTER TABLE transaksi ADD COLUMN pajak_persen REAL DEFAULT 0',
 
     // PELANGGAN
-    "ALTER TABLE transaksi ADD COLUMN pelanggan_id INTEGER DEFAULT NULL",
+    'ALTER TABLE transaksi ADD COLUMN pelanggan_id INTEGER DEFAULT NULL',
 
     // GROSIR
-    "ALTER TABLE produk ADD COLUMN harga_grosir  INTEGER DEFAULT 0",
-    "ALTER TABLE produk ADD COLUMN min_grosir    INTEGER DEFAULT 0",
-    "ALTER TABLE produk ADD COLUMN aktif_grosir  INTEGER DEFAULT 0",
+    'ALTER TABLE produk ADD COLUMN harga_grosir  INTEGER DEFAULT 0',
+    'ALTER TABLE produk ADD COLUMN min_grosir    INTEGER DEFAULT 0',
+    'ALTER TABLE produk ADD COLUMN aktif_grosir  INTEGER DEFAULT 0',
 
-    "ALTER TABLE transaksi_item ADD COLUMN harga_modal INTEGER DEFAULT 0",
+    'ALTER TABLE transaksi_item ADD COLUMN harga_modal INTEGER DEFAULT 0',
 
     // KONSINYASI
-    "ALTER TABLE produk ADD COLUMN konsinyor_id INTEGER DEFAULT NULL",
-    "ALTER TABLE produk ADD COLUMN is_konsinyasi INTEGER DEFAULT 0",
+    'ALTER TABLE produk ADD COLUMN konsinyor_id INTEGER DEFAULT NULL',
+    'ALTER TABLE produk ADD COLUMN is_konsinyasi INTEGER DEFAULT 0',
   ];
 
   migrations.forEach((sql) => {
@@ -182,7 +182,7 @@ export async function initDB(): Promise<void> {
     WHERE diskon > 0 AND diskon_nominal = 0
   `);
   } catch (e) {
-    console.warn("[DB] migrasi diskon_nominal error:", e);
+    console.warn('[DB] migrasi diskon_nominal error:', e);
   }
 
   // ── Migrasi owner dari PIN lama ───────────────────────────────────────────
@@ -197,21 +197,23 @@ export async function initDB(): Promise<void> {
       if (pinLama?.value) {
         db.runSync(
           `INSERT OR IGNORE INTO users (nama,username,pin,role) VALUES (?,?,?,?)`,
-          ["Owner", "owner", pinLama.value, "owner"],
+          ['Owner', 'owner', pinLama.value, 'owner'],
         );
       }
     }
   } catch (e) {
-    console.warn("[DB] owner migration error:", e);
+    console.warn('[DB] owner migration error:', e);
   }
 
   // ── Seed pengaturan default ───────────────────────────────────────────────
   [
-    ["nama_toko", "Warung Saya"],
-    ["alamat", ""],
-    ["no_hp", ""],
-    ["footer_struk", "Terima kasih atas kunjungan Anda!"],
-    ["pajak_persen", "0"],
+    ['nama_toko', 'Warung Saya'],
+    ['alamat', ''],
+    ['no_hp', ''],
+    ['footer_struk', 'Terima kasih atas kunjungan Anda!'],
+    ['pajak_persen', '0'],
+    // Added in v1.5.0 - Jadicuan Developer
+    ['logo_toko', ''],
   ].forEach(([k, v]) => {
     try {
       db.runSync(`INSERT OR IGNORE INTO pengaturan (key,value) VALUES (?,?)`, [
@@ -221,5 +223,5 @@ export async function initDB(): Promise<void> {
     } catch {}
   });
 
-  console.log("[DB] initDB DONE");
+  console.log('[DB] initDB DONE');
 }
