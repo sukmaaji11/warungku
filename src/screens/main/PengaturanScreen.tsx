@@ -26,7 +26,7 @@ import * as ImagePicker from 'expo-image-picker';
 //import * as FileSystem from 'expo-file-system/legacy';
 import * as FileSystem from 'expo-file-system';
 //Tester
-import { logoToBase64 } from "../../utils/printer";
+//import { logoToBase64 } from "../../utils/printer";
 
 type Section = {
   title: string;
@@ -361,15 +361,6 @@ export default function PengaturanScreen({ navigation }: any) {
       if (!sourceUri) {
         return;
       }
-      
-      // Tester
-      const base64 = await logoToBase64(sourceUri);
-
-      console.log("=== TEST LOGO BASE64 ===");
-      console.log("URI:", sourceUri);
-      console.log("Base64 berhasil:", !!base64);
-      console.log("Panjang Base64:", base64.length);
-      console.log("========================");
 
       const fileName = `logo-toko-${Date.now()}.jpg`;
       const destination = new FileSystem.File(
