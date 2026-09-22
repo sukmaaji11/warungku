@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,21 @@ import {
   Switch,
   Alert,
   TextInput,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../../constants";
-import { formatRupiah } from "../../utils/format";
-import { getDB } from "../../db/database";
-
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants';
+import { formatRupiah } from '../../utils/format';
+import { getDB } from '../../db/database';
+import {
+  getGrosirTiers,
+  tambahGrosirTier,
+  hapusGrosirTier,
+  updateGrosirTier,
+} from '../../db/produkRepo';
+{
+  /* Interface untuk produk grosir 
 interface ProdukGrosir {
   id: number;
   nama: string;
@@ -25,17 +32,37 @@ interface ProdukGrosir {
   aktif_grosir: number;
   satuan: string;
 }
+*/
+}
+// Jadicuan Developer - menambahkan interface untuk produk grosir dengan tiers
+interface ProdukGrosir {
+  id: number;
+  nama: string;
+  harga: number;
+  harga_grosir: number;
+  min_grosir: number;
+  aktif_grosir: number;
+  satuan: string;
+  tiers?: GrosirTier[];
+}
 
-function getAllProdukGrosir(search = ""): ProdukGrosir[] {
+interface GrosirTier {
+  id: number;
+  produk_id: number;
+  min_qty: number;
+  harga: number;
+}
+
+function getAllProdukGrosir(search = ''): ProdukGrosir[] {
   const db = getDB();
   let sql = `SELECT id, nama, harga, harga_grosir, min_grosir, aktif_grosir, satuan
              FROM produk WHERE aktif=1`;
   const args: any[] = [];
   if (search) {
-    sql += " AND nama LIKE ?";
+    sql += ' AND nama LIKE ?';
     args.push(`%${search}%`);
   }
-  sql += " ORDER BY nama ASC";
+  sql += ' ORDER BY nama ASC';
   return db.getAllSync(sql, args) as ProdukGrosir[];
 }
 
@@ -53,13 +80,34 @@ function updateGrosir(
 
 export default function GrosirScreen({ navigation }: any) {
   const [list, setList] = useState<ProdukGrosir[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
-  const [editHarga, setEditHarga] = useState("");
-  const [editMin, setEditMin] = useState("");
-
+  const [editHarga, setEditHarga] = useState('');
+  const [editMin, setEditMin] = useState('');
+  const [tierProdukId, setTierProdukId] = useState<number | null>(null);
+  const [tierMinQty, setTierMinQty] = useState('');
+  const [tierHarga, setTierHarga] = useState('');
+  const [editTierId, setEditTierId] = useState<number | null>(null);
+  const [editTierMinQty, setEditTierMinQty] = useState('');
+  const [editTierHarga, setEditTierHarga] = useState('');
+  {
+    /* Load data saat screen fokus 
   const load = useCallback(() => {
     setList(getAllProdukGrosir(search));
+  }, [search]);
+*/
+  }
+
+  // Load data saat screen fokus, termasuk tiers grosir - Jadicuan Developer
+  const load = useCallback(() => {
+    const produkList = getAllProdukGrosir(search);
+
+    const listDenganTier = produkList.map((produk) => ({
+      ...produk,
+      tiers: getGrosirTiers(produk.id),
+    }));
+
+    setList(listDenganTier);
   }, [search]);
 
   useFocusEffect(
@@ -73,12 +121,12 @@ export default function GrosirScreen({ navigation }: any) {
   const handleToggle = (p: ProdukGrosir, val: boolean) => {
     if (val && (!p.harga_grosir || !p.min_grosir)) {
       Alert.alert(
-        "Isi dulu",
-        "Tentukan harga grosir dan minimum qty sebelum mengaktifkan.",
+        'Isi dulu',
+        'Tentukan harga grosir dan minimum qty sebelum mengaktifkan.',
       );
       setEditId(p.id);
-      setEditHarga(p.harga_grosir ? p.harga_grosir.toString() : "");
-      setEditMin(p.min_grosir ? p.min_grosir.toString() : "");
+      setEditHarga(p.harga_grosir ? p.harga_grosir.toString() : '');
+      setEditMin(p.min_grosir ? p.min_grosir.toString() : '');
       return;
     }
     updateGrosir(p.id, p.harga_grosir, p.min_grosir, val ? 1 : 0);
@@ -89,15 +137,15 @@ export default function GrosirScreen({ navigation }: any) {
     const harga = parseInt(editHarga) || 0;
     const min = parseInt(editMin) || 0;
     if (harga <= 0) {
-      Alert.alert("Error", "Harga grosir harus lebih dari 0");
+      Alert.alert('Error', 'Harga grosir harus lebih dari 0');
       return;
     }
     if (harga >= p.harga) {
-      Alert.alert("Error", "Harga grosir harus lebih murah dari harga normal");
+      Alert.alert('Error', 'Harga grosir harus lebih murah dari harga normal');
       return;
     }
     if (min <= 1) {
-      Alert.alert("Error", "Minimum qty minimal 2");
+      Alert.alert('Error', 'Minimum qty minimal 2');
       return;
     }
     updateGrosir(p.id, harga, min, p.aktif_grosir);
@@ -105,8 +153,83 @@ export default function GrosirScreen({ navigation }: any) {
     load();
   };
 
+  // Handle Save Tier - Jadicuan Developer
+  const handleSaveTier = (p: ProdukGrosir) => {
+    const minQty = parseInt(tierMinQty) || 0;
+    const harga = parseInt(tierHarga) || 0;
+
+    if (minQty <= 1) {
+      Alert.alert('Error', 'Minimum qty minimal 2');
+      return;
+    }
+
+    if (harga <= 0) {
+      Alert.alert('Error', 'Harga grosir harus lebih dari 0');
+      return;
+    }
+
+    if (harga >= p.harga) {
+      Alert.alert('Error', 'Harga grosir harus lebih murah dari harga normal');
+      return;
+    }
+
+    const sudahAda = (p.tiers ?? []).some((tier) => tier.min_qty === minQty);
+
+    if (sudahAda) {
+      Alert.alert('Error', `Tier ${minQty} ${p.satuan} sudah ada.`);
+      return;
+    }
+
+    tambahGrosirTier(p.id, minQty, harga);
+
+    setTierProdukId(null);
+    setTierMinQty('');
+    setTierHarga('');
+
+    load();
+  };
+
+  const handleSaveEditTier = (p: ProdukGrosir) => {
+    const minQty = parseInt(editTierMinQty) || 0;
+    const harga = parseInt(editTierHarga) || 0;
+
+    if (editTierId === null) return;
+
+    if (minQty <= 1) {
+      Alert.alert('Error', 'Minimum qty minimal 2');
+      return;
+    }
+
+    if (harga <= 0) {
+      Alert.alert('Error', 'Harga grosir harus lebih dari 0');
+      return;
+    }
+
+    if (harga >= p.harga) {
+      Alert.alert('Error', 'Harga grosir harus lebih murah dari harga normal');
+      return;
+    }
+
+    const sudahAda = (p.tiers ?? []).some(
+      (tier) => tier.id !== editTierId && tier.min_qty === minQty,
+    );
+
+    if (sudahAda) {
+      Alert.alert('Error', `Tier ${minQty} ${p.satuan} sudah ada.`);
+      return;
+    }
+
+    updateGrosirTier(editTierId, minQty, harga);
+
+    setEditTierId(null);
+    setEditTierMinQty('');
+    setEditTierHarga('');
+
+    load();
+  };
+
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -137,7 +260,7 @@ export default function GrosirScreen({ navigation }: any) {
           onChangeText={setSearch}
         />
         {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch("")}>
+          <TouchableOpacity onPress={() => setSearch('')}>
             <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         )}
@@ -168,9 +291,9 @@ export default function GrosirScreen({ navigation }: any) {
                   onValueChange={(val) => handleToggle(p, val)}
                   trackColor={{
                     false: Colors.border,
-                    true: Colors.primary + "80",
+                    true: Colors.primary + '80',
                   }}
-                  thumbColor={p.aktif_grosir === 1 ? Colors.primary : "#f4f3f4"}
+                  thumbColor={p.aktif_grosir === 1 ? Colors.primary : '#f4f3f4'}
                 />
               </View>
 
@@ -202,7 +325,8 @@ export default function GrosirScreen({ navigation }: any) {
                       setEditId(p.id);
                       setEditHarga(p.harga_grosir.toString());
                       setEditMin(p.min_grosir.toString());
-                    }}>
+                    }}
+                  >
                     <Ionicons
                       name="pencil-outline"
                       size={13}
@@ -211,7 +335,236 @@ export default function GrosirScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
               )}
+              {/* Grosir bertingkat - Jadicuan Developer */}
+              {tierProdukId === p.id && !isEditing && (
+                <View style={s.tierForm}>
+                  <Text style={s.tierFormTitle}>Tambah Tingkat Grosir</Text>
 
+                  <View style={s.editRow}>
+                    <View style={s.editField}>
+                      <Text style={s.editLabel}>MIN QTY</Text>
+
+                      <View style={s.editInput}>
+                        <TextInput
+                          style={[s.editTxt, { flex: 1 }]}
+                          value={tierMinQty}
+                          onChangeText={setTierMinQty}
+                          keyboardType="numeric"
+                          placeholder="10"
+                          placeholderTextColor={Colors.textDisabled}
+                        />
+                        <Text style={s.editRp}>{p.satuan}</Text>
+                      </View>
+                    </View>
+
+                    <View style={s.editField}>
+                      <Text style={s.editLabel}>HARGA</Text>
+
+                      <View style={s.editInput}>
+                        <Text style={s.editRp}>Rp</Text>
+
+                        <TextInput
+                          style={s.editTxt}
+                          value={
+                            tierHarga
+                              ? parseInt(tierHarga).toLocaleString('id-ID')
+                              : ''
+                          }
+                          onChangeText={(v) =>
+                            setTierHarga(v.replace(/\D/g, ''))
+                          }
+                          keyboardType="numeric"
+                          placeholder="9.000"
+                          placeholderTextColor={Colors.textDisabled}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={s.editBtns}>
+                    <TouchableOpacity
+                      style={s.btnBatal}
+                      onPress={() => setTierProdukId(null)}
+                    >
+                      <Text style={s.btnBatalTxt}>Batal</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={s.btnSimpan}
+                      onPress={() => handleSaveTier(p)}
+                    >
+                      <Ionicons name="checkmark" size={14} color="#fff" />
+                      <Text style={s.btnSimpanTxt}>Simpan</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Grosir bertingkat - Jadicuan Developer */}
+              {p.aktif_grosir === 1 && !isEditing && (
+                <View style={s.tierSection}>
+                  <View style={s.tierHeader}>
+                    <View style={s.tierTitleWrap}>
+                      <Ionicons
+                        name="layers-outline"
+                        size={14}
+                        color={Colors.primary}
+                      />
+                      <Text style={s.tierTitle}>Grosir Bertingkat</Text>
+                      <Text style={s.tierCount}>
+                        {p.tiers?.length || 0} tingkat
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={s.addTierMiniBtn}
+                      onPress={() => {
+                        setTierProdukId(p.id);
+                        setTierMinQty('');
+                        setTierHarga('');
+                      }}
+                    >
+                      <Ionicons name="add" size={14} color={Colors.primary} />
+                      <Text style={s.addTierMiniTxt}>Tambah</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {p.tiers && p.tiers.length > 0 ? (
+                    p.tiers.map((tier) => {
+                      const isEditingTier = editTierId === tier.id;
+
+                      if (isEditingTier) {
+                        return (
+                          <View key={tier.id} style={s.tierEditRow}>
+                            <View style={s.tierEditField}>
+                              <Text style={s.tierEditLabel}>MIN QTY</Text>
+                              <View style={s.editInput}>
+                                <TextInput
+                                  style={[s.editTxt, { flex: 1 }]}
+                                  value={editTierMinQty}
+                                  onChangeText={setEditTierMinQty}
+                                  keyboardType="numeric"
+                                />
+                                <Text style={s.editRp}>{p.satuan}</Text>
+                              </View>
+                            </View>
+
+                            <View style={s.tierEditField}>
+                              <Text style={s.tierEditLabel}>HARGA</Text>
+                              <View style={s.editInput}>
+                                <Text style={s.editRp}>Rp</Text>
+                                <TextInput
+                                  style={s.editTxt}
+                                  value={
+                                    editTierHarga
+                                      ? parseInt(editTierHarga).toLocaleString(
+                                          'id-ID',
+                                        )
+                                      : ''
+                                  }
+                                  onChangeText={(v) =>
+                                    setEditTierHarga(v.replace(/\D/g, ''))
+                                  }
+                                  keyboardType="numeric"
+                                />
+                              </View>
+                            </View>
+
+                            <View style={s.tierEditActions}>
+                              <TouchableOpacity
+                                style={s.tierCancelBtn}
+                                onPress={() => {
+                                  setEditTierId(null);
+                                  setEditTierMinQty('');
+                                  setEditTierHarga('');
+                                }}
+                              >
+                                <Ionicons
+                                  name="close"
+                                  size={16}
+                                  color={Colors.textMuted}
+                                />
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                style={s.tierSaveBtn}
+                                onPress={() => handleSaveEditTier(p)}
+                              >
+                                <Ionicons
+                                  name="checkmark"
+                                  size={16}
+                                  color="#fff"
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        );
+                      }
+
+                      return (
+                        <View key={tier.id} style={s.tierRow}>
+                          <Text style={s.tierMin}>
+                            {tier.min_qty}+ {p.satuan}
+                          </Text>
+
+                          <Text style={s.tierArrow}>→</Text>
+
+                          <Text style={s.tierHarga}>
+                            {formatRupiah(tier.harga)}
+                          </Text>
+
+                          <TouchableOpacity
+                            style={s.tierEditBtn}
+                            onPress={() => {
+                              setEditTierId(tier.id);
+                              setEditTierMinQty(tier.min_qty.toString());
+                              setEditTierHarga(tier.harga.toString());
+                            }}
+                          >
+                            <Ionicons
+                              name="pencil-outline"
+                              size={13}
+                              color={Colors.primary}
+                            />
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={s.tierDeleteBtn}
+                            onPress={() => {
+                              Alert.alert(
+                                'Hapus Tingkat Grosir',
+                                `Hapus harga grosir ${tier.min_qty}+ ${p.satuan}?`,
+                                [
+                                  {
+                                    text: 'Batal',
+                                    style: 'cancel',
+                                  },
+                                  {
+                                    text: 'Hapus',
+                                    style: 'destructive',
+                                    onPress: () => {
+                                      hapusGrosirTier(tier.id);
+                                      load();
+                                    },
+                                  },
+                                ],
+                              );
+                            }}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={13}
+                              color="#DC2626"
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text style={s.noTierTxt}>Tidak ada tingkat grosir</Text>
+                  )}
+                </View>
+              )}
               {/* Form edit */}
               {isEditing && (
                 <View style={s.editForm}>
@@ -224,11 +577,11 @@ export default function GrosirScreen({ navigation }: any) {
                           style={s.editTxt}
                           value={
                             editHarga
-                              ? parseInt(editHarga).toLocaleString("id-ID")
-                              : ""
+                              ? parseInt(editHarga).toLocaleString('id-ID')
+                              : ''
                           }
                           onChangeText={(v) =>
-                            setEditHarga(v.replace(/\D/g, ""))
+                            setEditHarga(v.replace(/\D/g, ''))
                           }
                           keyboardType="numeric"
                           placeholder="0"
@@ -257,11 +610,11 @@ export default function GrosirScreen({ navigation }: any) {
                   {editHarga && editMin && parseInt(editHarga) > 0 && (
                     <View style={s.previewBox}>
                       <Text style={s.previewTxt}>
-                        Beli {editMin}+ {p.satuan} →{" "}
+                        Beli {editMin}+ {p.satuan} →{' '}
                         {formatRupiah(parseInt(editHarga))} / {p.satuan}
                         {parseInt(editHarga) < p.harga
                           ? `  (hemat ${formatRupiah(p.harga - parseInt(editHarga))} / ${p.satuan})`
-                          : "  ⚠ harus lebih murah dari harga normal"}
+                          : '  ⚠ harus lebih murah dari harga normal'}
                       </Text>
                     </View>
                   )}
@@ -269,12 +622,14 @@ export default function GrosirScreen({ navigation }: any) {
                   <View style={s.editBtns}>
                     <TouchableOpacity
                       style={s.btnBatal}
-                      onPress={() => setEditId(null)}>
+                      onPress={() => setEditId(null)}
+                    >
                       <Text style={s.btnBatalTxt}>Batal</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={s.btnSimpan}
-                      onPress={() => handleSaveEdit(p)}>
+                      onPress={() => handleSaveEdit(p)}
+                    >
                       <Ionicons name="checkmark" size={14} color="#fff" />
                       <Text style={s.btnSimpanTxt}>Simpan</Text>
                     </TouchableOpacity>
@@ -289,10 +644,11 @@ export default function GrosirScreen({ navigation }: any) {
                   onPress={() => {
                     setEditId(p.id);
                     setEditHarga(
-                      p.harga_grosir > 0 ? p.harga_grosir.toString() : "",
+                      p.harga_grosir > 0 ? p.harga_grosir.toString() : '',
                     );
-                    setEditMin(p.min_grosir > 0 ? p.min_grosir.toString() : "");
-                  }}>
+                    setEditMin(p.min_grosir > 0 ? p.min_grosir.toString() : '');
+                  }}
+                >
                   <Ionicons
                     name="add-circle-outline"
                     size={14}
@@ -301,7 +657,7 @@ export default function GrosirScreen({ navigation }: any) {
                   <Text style={s.tapSetTxt}>
                     {p.harga_grosir > 0
                       ? `${formatRupiah(p.harga_grosir)} / min ${p.min_grosir} — nonaktif`
-                      : "Tap untuk atur harga grosir"}
+                      : 'Tap untuk atur harga grosir'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -322,8 +678,8 @@ export default function GrosirScreen({ navigation }: any) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -333,28 +689,28 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  sub: { color: "rgba(255,255,255,.55)", fontSize: 12 },
+  title: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  sub: { color: 'rgba(255,255,255,.55)', fontSize: 12 },
   infoCard: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
-    alignItems: "flex-start",
-    backgroundColor: "#E3F2FD",
+    alignItems: 'flex-start',
+    backgroundColor: '#E3F2FD',
     marginHorizontal: 14,
     marginBottom: 8,
     borderRadius: 10,
     padding: 12,
   },
-  infoTxt: { flex: 1, fontSize: 12, color: "#1565C0", lineHeight: 17 },
+  infoTxt: { flex: 1, fontSize: 12, color: '#1565C0', lineHeight: 17 },
   searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginHorizontal: 14,
     marginBottom: 10,
     borderRadius: 12,
@@ -372,7 +728,7 @@ const s = StyleSheet.create({
     paddingBottom: 80,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -380,67 +736,67 @@ const s = StyleSheet.create({
   },
   cardActive: { borderColor: Colors.primary, borderWidth: 1 },
   cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     marginBottom: 8,
   },
-  prodNama: { fontSize: 14, fontWeight: "700", color: Colors.text },
+  prodNama: { fontSize: 14, fontWeight: '700', color: Colors.text },
   prodHarga: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   grosirBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: '#E3F2FD',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  grosirBadgeTxt: { fontSize: 11, fontWeight: "700", color: "#1565C0" },
+  grosirBadgeTxt: { fontSize: 11, fontWeight: '700', color: '#1565C0' },
   minBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: '#F5F3FF',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  minBadgeTxt: { fontSize: 11, fontWeight: "700", color: "#7C3AED" },
+  minBadgeTxt: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
   hematBadge: {
-    backgroundColor: "#F0FDF4",
+    backgroundColor: '#F0FDF4',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  hematTxt: { fontSize: 11, fontWeight: "700", color: "#16A34A" },
-  editBtn: { marginLeft: "auto" as any, padding: 4 },
+  hematTxt: { fontSize: 11, fontWeight: '700', color: '#16A34A' },
+  editBtn: { marginLeft: 'auto' as any, padding: 4 },
   tapSet: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     paddingVertical: 6,
   },
   tapSetTxt: { fontSize: 12, color: Colors.textMuted },
   editForm: { marginTop: 8, gap: 10 },
-  editRow: { flexDirection: "row", gap: 10 },
+  editRow: { flexDirection: 'row', gap: 10 },
   editField: { flex: 1 },
   editLabel: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textMuted,
     marginBottom: 5,
     letterSpacing: 0.3,
   },
   editInput: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.background,
     borderRadius: 10,
     borderWidth: 1,
@@ -448,34 +804,203 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  editRp: { fontSize: 13, color: Colors.textMuted, fontWeight: "600" },
+  editRp: { fontSize: 13, color: Colors.textMuted, fontWeight: '600' },
   editTxt: { flex: 1, fontSize: 14, color: Colors.text, paddingHorizontal: 4 },
   previewBox: {
     backgroundColor: Colors.primaryLight,
     borderRadius: 8,
     padding: 10,
   },
-  previewTxt: { fontSize: 12, color: Colors.primary, fontWeight: "600" },
-  editBtns: { flexDirection: "row", gap: 8 },
+  previewTxt: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
+  editBtns: { flexDirection: 'row', gap: 8 },
   btnBatal: {
     flex: 1,
     padding: 10,
     borderRadius: 10,
     backgroundColor: Colors.background,
-    alignItems: "center",
+    alignItems: 'center',
   },
-  btnBatalTxt: { fontWeight: "700", color: Colors.textMuted, fontSize: 13 },
+  btnBatalTxt: { fontWeight: '700', color: Colors.textMuted, fontSize: 13 },
   btnSimpan: {
     flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     padding: 10,
     borderRadius: 10,
     backgroundColor: Colors.primary,
   },
-  btnSimpanTxt: { fontWeight: "800", color: "#fff", fontSize: 13 },
-  emptyWrap: { alignItems: "center", paddingTop: 60, gap: 10 },
+  btnSimpanTxt: { fontWeight: '800', color: '#fff', fontSize: 13 },
+  emptyWrap: { alignItems: 'center', paddingTop: 60, gap: 10 },
   emptyTxt: { fontSize: 14, color: Colors.textMuted },
+  tierSection: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+
+  tierHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+
+  tierTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+
+  tierTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+
+  tierCount: {
+    fontSize: 10,
+    color: Colors.textMuted,
+  },
+
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+
+  tierMin: {
+    width: 80,
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+
+  tierArrow: {
+    flex: 1,
+    textAlign: 'center',
+    color: Colors.textMuted,
+  },
+
+  tierHarga: {
+    width: 100,
+    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  addTierBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 7,
+  },
+
+  addTierTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+
+  tierForm: {
+    marginTop: 8,
+    padding: 10,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40',
+    gap: 10,
+  },
+
+  tierFormTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  addTierMiniBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    borderRadius: 7,
+    backgroundColor: Colors.primaryLight,
+  },
+
+  addTierMiniTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  tierDeleteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    marginLeft: 8,
+  },
+  tierEditBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryLight,
+    marginLeft: 6,
+  },
+
+  tierEditRow: {
+    paddingVertical: 8,
+    gap: 8,
+  },
+
+  tierEditField: {
+    flex: 1,
+  },
+
+  tierEditLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+
+  tierEditActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 6,
+  },
+
+  tierCancelBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  tierSaveBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noTierTxt: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    paddingVertical: 8,
+    textAlign: 'center',
+  },
 });

@@ -1,6 +1,6 @@
-import { getDB } from "./database";
-import { updateKonsinyasiDariTransaksi } from "./konsinyasiRepo";
-import { updateStok } from "./produkRepo";
+import { getDB } from './database';
+import { updateKonsinyasiDariTransaksi } from './konsinyasiRepo';
+import { updateStok } from './produkRepo';
 
 export interface TrxItem {
   produk_id: number;
@@ -25,9 +25,9 @@ export interface Transaksi {
 
 function noTrx(): string {
   const d = new Date();
-  const p = (n: number) => n.toString().padStart(2, "0");
+  const p = (n: number) => n.toString().padStart(2, '0');
   return (
-    "TRX" +
+    'TRX' +
     d.getFullYear() +
     p(d.getMonth() + 1) +
     p(d.getDate()) +
@@ -43,7 +43,7 @@ export function simpanTransaksi(
   bayar: number,
   metode: string,
   pelangganId: number | null = null,
-  kasir: string = "",
+  kasir: string = '',
   pajak: number = 0,
   pajakPersen: number = 0,
 ): string {
@@ -122,7 +122,7 @@ export function migrateHargaModalTransaksiItem(): void {
         )
     `);
   } catch (e) {
-    console.warn("[transaksiRepo] migrateHargaModal error:", e);
+    console.warn('[transaksiRepo] migrateHargaModal error:', e);
   }
 }
 
@@ -130,9 +130,9 @@ export function getTrxHarian(tgl?: string) {
   const d = new Date();
   const t =
     tgl ||
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return getDB().getAllSync(
-    "SELECT * FROM transaksi WHERE date(waktu)=? ORDER BY waktu DESC",
+    'SELECT * FROM transaksi WHERE date(waktu)=? ORDER BY waktu DESC',
     [t],
   ) as any[];
 }
@@ -141,7 +141,7 @@ export function getRingkasan(tgl?: string) {
   const d = new Date();
   const t =
     tgl ||
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   // ── FIX: gunakan query SAMA dengan getRingkasanByRange ────────────────────
   // Sebelumnya getRingkasan pakai 3 query terpisah dengan filter berbeda
@@ -152,29 +152,56 @@ export function getRingkasan(tgl?: string) {
 
 export function getTerlaris(
   limit = 5,
-  periode: "hari" | "bulan" | "tahun" = "hari",
+  periode: 'hari' | 'bulan' | 'tahun' = 'hari',
 ): any[] {
   let filter = "date(t.waktu)=date('now','localtime')";
-  if (periode === "bulan")
+  if (periode === 'bulan')
     filter = "strftime('%Y-%m',t.waktu)=strftime('%Y-%m','now','localtime')";
-  if (periode === "tahun")
+  if (periode === 'tahun')
     filter = "strftime('%Y',t.waktu)=strftime('%Y','now','localtime')";
   return getDB().getAllSync(
-    "SELECT ti.nama_produk, SUM(ti.qty) as qty, SUM(ti.subtotal) as omset FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id=t.id WHERE " +
+    'SELECT ti.nama_produk, SUM(ti.qty) as qty, SUM(ti.subtotal) as omset FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id=t.id WHERE ' +
       filter +
-      " GROUP BY ti.nama_produk ORDER BY qty DESC LIMIT ?",
+      ' GROUP BY ti.nama_produk ORDER BY qty DESC LIMIT ?',
     [limit],
   );
 }
 
-export function getOmset7Hari(kasir?: string): { tgl: string; omset: number }[] {
+// Add Function Get Terlaris By Date Range - Jadicuan Developer
+export function getTerlarisByRange(
+  dari: string,
+  sampai: string,
+  limit = 20,
+): any[] {
+  try {
+    return getDB().getAllSync(
+      `SELECT
+        ti.nama_produk,
+        SUM(ti.qty) as qty,
+        SUM(ti.subtotal) as omset
+       FROM transaksi_item ti
+       JOIN transaksi t ON ti.transaksi_id = t.id
+       WHERE date(t.waktu) BETWEEN ? AND ?
+       GROUP BY ti.nama_produk
+       ORDER BY qty DESC
+       LIMIT ?`,
+      [dari, sampai, limit],
+    ) as any[];
+  } catch {
+    return [];
+  }
+}
+
+export function getOmset7Hari(
+  kasir?: string,
+): { tgl: string; omset: number }[] {
   const result: { tgl: string; omset: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     result.push({ tgl: `${y}-${m}-${day}`, omset: 0 });
   }
   try {
@@ -199,10 +226,10 @@ export function getOmset7Hari(kasir?: string): { tgl: string; omset: number }[] 
 export function getTrxByMetode(tgl: string, metode?: string) {
   const db = getDB();
   const where =
-    metode && metode !== "semua"
+    metode && metode !== 'semua'
       ? `WHERE date(t.waktu) = ? AND t.metode_bayar = ?`
       : `WHERE date(t.waktu) = ?`;
-  const params = metode && metode !== "semua" ? [tgl, metode] : [tgl];
+  const params = metode && metode !== 'semua' ? [tgl, metode] : [tgl];
   return db.getAllSync(
     `SELECT t.*,
       (SELECT SUM(qty) FROM transaksi_item WHERE transaksi_id=t.id) as qty
@@ -225,7 +252,7 @@ export function getTrxByDateRange(
     WHERE date(t.waktu) BETWEEN ? AND ?
   `;
   const params: any[] = [dari, sampai];
-  if (metode && metode !== "semua") {
+  if (metode && metode !== 'semua') {
     query += ` AND t.metode_bayar=?`;
     params.push(metode);
   }
@@ -307,11 +334,15 @@ export function getProfitByMetode(
   }
 }
 
-export function getRingkasanByRange(dari: string, sampai: string, kasir?: string) {
+export function getRingkasanByRange(
+  dari: string,
+  sampai: string,
+  kasir?: string,
+) {
   const db = getDB();
   try {
     const params: any[] = [dari, sampai];
-    let kasirWhere = "";
+    let kasirWhere = '';
     if (kasir) {
       kasirWhere = ` AND t.kasir = ?`;
       params.push(kasir);
@@ -333,7 +364,7 @@ export function getRingkasanByRange(dari: string, sampai: string, kasir?: string
     );
     // Hitung qty terpisah karena butuh JOIN ke transaksi_item
     const qtyParams: any[] = [dari, sampai];
-    let qtyKasirWhere = "";
+    let qtyKasirWhere = '';
     if (kasir) {
       qtyKasirWhere = ` AND t.kasir = ?`;
       qtyParams.push(kasir);

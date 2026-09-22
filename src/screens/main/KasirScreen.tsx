@@ -31,6 +31,7 @@ import {
   // ── BARU: import fungsi grosir ──
   hitungHargaGrosir,
   isGrosirAktif,
+  getHargaGrosirBertingkat,
 } from '../../db/produkRepo';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -1080,9 +1081,21 @@ export default function KasirScreen({ navigation }: any) {
       const habis = item.stok === 0;
       const low = item.stok > 0 && item.stok <= item.stok_minimum;
       // ── BARU: cek apakah produk punya grosir aktif dan qty sudah memenuhi ──
-      const adaGrosir = isGrosirAktif(item);
-      const sudahGrosir = adaGrosir && qty >= (item.min_grosir ?? 0);
-      const hargaTampil = sudahGrosir ? item.harga_grosir! : item.harga;
+      const adaGrosirLama = isGrosirAktif(item);
+
+      const hargaGrosirBertingkat = getHargaGrosirBertingkat(item.id, qty);
+
+      const adaGrosirBertingkat =
+        hargaGrosirBertingkat !== null && hargaGrosirBertingkat > 0;
+
+      const adaGrosir = adaGrosirLama || adaGrosirBertingkat;
+
+      const sudahGrosir =
+        adaGrosirBertingkat || (adaGrosirLama && qty >= (item.min_grosir ?? 0));
+
+      const hargaTampil = sudahGrosir
+        ? (hargaGrosirBertingkat ?? item.harga_grosir!)
+        : item.harga;
 
       return (
         <TouchableOpacity
@@ -1143,8 +1156,10 @@ export default function KasirScreen({ navigation }: any) {
                   style={[pc.grosirTagTxt, sudahGrosir && { color: '#fff' }]}
                 >
                   {sudahGrosir
-                    ? `GROSIR ${formatRupiah(item.harga_grosir!)}`
-                    : `GROSIR ≥${item.min_grosir}`}
+                    ? `GROSIR ${formatRupiah(hargaTampil)}`
+                    : adaGrosirLama
+                      ? `GROSIR ≥${item.min_grosir}`
+                      : 'GROSIR'}
                 </Text>
               </View>
             )}

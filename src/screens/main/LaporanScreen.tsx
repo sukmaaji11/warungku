@@ -1,5 +1,5 @@
 // src/screens/main/LaporanScreen.tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,17 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../../constants/colors";
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants/colors';
 import {
   formatRupiah,
   formatTanggal,
   todayString,
   toLocalDateString,
-} from "../../utils/format";
+} from '../../utils/format';
 import {
   getRingkasan,
   getTerlaris,
@@ -34,29 +34,30 @@ import {
   hapusTransaksi,
   migrateHargaModalTransaksiItem,
   getProfitByMetode, // ← BARU
-} from "../../db/transaksiRepo";
+  getTerlarisByRange, // ← BARU
+} from '../../db/transaksiRepo';
 import {
   getProdukMenipis,
   getPengaturan,
   updateStokProduk,
-} from "../../db/produkRepo";
-import { getDB } from "../../db/database";
-import { useAuthStore } from "../../store/authStore";
-import { getTotalPengeluaranByRange } from "./PengeluaranScreen";
-import DateTimePicker from "@react-native-community/datetimepicker";
+} from '../../db/produkRepo';
+import { getDB } from '../../db/database';
+import { useAuthStore } from '../../store/authStore';
+import { getTotalPengeluaranByRange } from './PengeluaranScreen';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const NAVY = Colors.primary;
 
 function getMetodeColor(metode: string) {
   switch (metode) {
-    case "tunai":
-      return { color: Colors.success, bg: "#F0FDF4" };
-    case "qris":
-      return { color: Colors.info, bg: "#EFF6FF" };
-    case "hutang":
-      return { color: Colors.danger, bg: "#FEF2F2" };
-    case "transfer":
-      return { color: "#7C3AED", bg: "#F5F3FF" };
+    case 'tunai':
+      return { color: Colors.success, bg: '#F0FDF4' };
+    case 'qris':
+      return { color: Colors.info, bg: '#EFF6FF' };
+    case 'hutang':
+      return { color: Colors.danger, bg: '#FEF2F2' };
+    case 'transfer':
+      return { color: '#7C3AED', bg: '#F5F3FF' };
     default:
       return { color: Colors.textMuted, bg: Colors.background };
   }
@@ -74,7 +75,7 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
   );
   if (items.length === 0)
     return (
-      <View style={{ alignItems: "center", padding: 20 }}>
+      <View style={{ alignItems: 'center', padding: 20 }}>
         <Text style={{ color: Colors.textLight, fontSize: 12 }}>
           Memuat detail...
         </Text>
@@ -92,7 +93,7 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
                 {item.qty}× {formatRupiah(item.harga)}
               </Text>
             </View>
-            <View style={{ alignItems: "flex-end" }}>
+            <View style={{ alignItems: 'flex-end' }}>
               <Text style={dt.subtotal}>{formatRupiah(item.subtotal)}</Text>
               {item.harga_modal > 0 && (
                 <Text style={dt.profit}>+{formatRupiah(itemProfit)}</Text>
@@ -112,28 +113,28 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
 
 const dt = StyleSheet.create({
   row: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingVertical: 9,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.borderLight,
   },
   nama: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.text,
     marginBottom: 2,
   },
   sub: { fontSize: 11, color: Colors.textLight },
-  subtotal: { fontSize: 13, fontWeight: "700", color: Colors.text },
+  subtotal: { fontSize: 13, fontWeight: '700', color: Colors.text },
   profit: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: '600',
     color: Colors.success,
     marginTop: 2,
   },
   profitTotal: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     backgroundColor: Colors.successLight,
     borderRadius: 10,
@@ -142,11 +143,11 @@ const dt = StyleSheet.create({
   },
   profitTotalLbl: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.success,
     flex: 1,
   },
-  profitTotalVal: { fontSize: 13, fontWeight: "800", color: Colors.success },
+  profitTotalVal: { fontSize: 13, fontWeight: '800', color: Colors.success },
 });
 
 // ── RekapModal ────────────────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ function RekapModal({ visible, onClose }: any) {
   );
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={m.safe} edges={["top"]}>
+      <SafeAreaView style={m.safe} edges={['top']}>
         <View style={m.header}>
           <TouchableOpacity onPress={onClose} style={m.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -186,7 +187,7 @@ function RekapModal({ visible, onClose }: any) {
                   <View>
                     <Text style={m.trxNo}>{item.no_trx}</Text>
                     <Text style={m.trxTime}>
-                      {item.waktu?.slice(11, 16) || "-"}
+                      {item.waktu?.slice(11, 16) || '-'}
                     </Text>
                   </View>
                   <View style={[m.metodePill, { backgroundColor: bg }]}>
@@ -215,17 +216,72 @@ function RekapModal({ visible, onClose }: any) {
 
 // ── TerlarisModal ─────────────────────────────────────────────────────────────
 function TerlarisModal({ visible, onClose }: any) {
-  const [periode, setPeriode] = useState<"hari" | "bulan" | "tahun">("hari");
+  //const [periode, setPeriode] = useState<'hari' | 'bulan' | 'tahun'>('hari');
+  //const [list, setList] = useState<any[]>([]);
+
+  // Add RangeType definition - Jadicuan Developer
+  type RangeType = 'hari_ini' | 'kemarin' | '7_hari' | '30_hari' | 'custom';
+
+  const [range, setRange] = useState<RangeType>('hari_ini');
+
+  const [customDari, setCustomDari] = useState('');
+  const [customSampai, setCustomSampai] = useState('');
+
+  const [showCustom, setShowCustom] = useState(false);
+  const [showPicker, setShowPicker] = useState<'dari' | 'sampai' | null>(null);
+
   const [list, setList] = useState<any[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!visible) return;
+
+      const today = todayString();
+      const d = new Date();
+
+      let dari = today;
+      let sampai = today;
+
+      if (range === 'kemarin') {
+        d.setDate(d.getDate() - 1);
+        const kemarin = toLocalDateString(d);
+
+        dari = kemarin;
+        sampai = kemarin;
+      }
+
+      if (range === '7_hari') {
+        d.setDate(d.getDate() - 6);
+        dari = toLocalDateString(d);
+      }
+
+      if (range === '30_hari') {
+        d.setDate(d.getDate() - 29);
+        dari = toLocalDateString(d);
+      }
+
+      if (range === 'custom') {
+        dari = customDari || today;
+        sampai = customSampai || today;
+      }
+
+      setList(getTerlarisByRange(dari, sampai, 20));
+    }, [visible, range, customDari, customSampai]),
+  );
+
+  {
+    /* useEffect to load data based on range
   useFocusEffect(
     useCallback(() => {
       if (visible) setList(getTerlaris(20, periode));
     }, [visible, periode]),
   );
+   */
+  }
   const maxQty = list[0]?.qty || 1;
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={m.safe} edges={["top"]}>
+      <SafeAreaView style={m.safe} edges={['top']}>
         <View style={m.header}>
           <TouchableOpacity onPress={onClose} style={m.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -233,18 +289,41 @@ function TerlarisModal({ visible, onClose }: any) {
           <Text style={m.headerTitle}>Produk Terlaris</Text>
           <View style={{ width: 36 }} />
         </View>
-        <View style={m.periodeRow}>
-          {(["hari", "bulan", "tahun"] as const).map((p) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          style={{ flexGrow: 0 }}
+        >
+          {(
+            [
+              ['hari_ini', 'Hari Ini'],
+              ['kemarin', 'Kemarin'],
+              ['7_hari', '7 Hari'],
+              ['30_hari', '30 Hari'],
+              ['custom', 'Custom'],
+            ] as const
+          ).map(([value, label]) => (
             <TouchableOpacity
-              key={p}
-              style={[m.periodeChip, periode === p && m.periodeActive]}
-              onPress={() => setPeriode(p)}>
-              <Text style={[m.periodeTxt, periode === p && m.periodeTxtActive]}>
-                {p.charAt(0).toUpperCase() + p.slice(1)} ini
+              key={value}
+              style={[m.periodeChip, range === value && m.periodeActive]}
+              onPress={() => {
+                if (value === 'custom') {
+                  setShowCustom(true);
+                  return;
+                }
+
+                setRange(value);
+              }}
+            >
+              <Text
+                style={[m.periodeTxt, range === value && m.periodeTxtActive]}
+              >
+                {label}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
         <FlatList
           data={list}
           keyExtractor={(_, i) => i.toString()}
@@ -258,7 +337,7 @@ function TerlarisModal({ visible, onClose }: any) {
           }
           renderItem={({ item, index }) => {
             const pct = Math.round((item.qty / maxQty) * 100);
-            const medals = ["🥇", "🥈", "🥉"];
+            const medals = ['🥇', '🥈', '🥉'];
             return (
               <View style={m.terlarisCard}>
                 <View style={m.terlarisLeft}>
@@ -279,6 +358,180 @@ function TerlarisModal({ visible, onClose }: any) {
           }}
         />
       </SafeAreaView>
+      <Modal
+        visible={showCustom}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCustom(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 20,
+              padding: 20,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '700',
+                marginBottom: 20,
+                color: '#111827',
+              }}
+            >
+              Pilih Periode
+            </Text>
+
+            {/* DARI */}
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: '#6B7280',
+                marginBottom: 8,
+              }}
+            >
+              Dari
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setShowPicker('dari')}
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ color: customDari ? '#111827' : '#9CA3AF' }}>
+                {customDari || 'Pilih tanggal'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* SAMPAI */}
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: '#6B7280',
+                marginBottom: 8,
+              }}
+            >
+              Sampai
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setShowPicker('sampai')}
+              style={{
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 20,
+              }}
+            >
+              <Text style={{ color: customSampai ? '#111827' : '#9CA3AF' }}>
+                {customSampai || 'Pilih tanggal'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setShowCustom(false)}
+                style={{
+                  flex: 1,
+                  padding: 14,
+                  borderRadius: 12,
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    fontWeight: '600',
+                    color: '#374151',
+                  }}
+                >
+                  Batal
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  if (!customDari || !customSampai) {
+                    Alert.alert(
+                      'Tanggal belum lengkap',
+                      'Silakan pilih tanggal mulai dan tanggal akhir.',
+                    );
+                    return;
+                  }
+
+                  if (customDari > customSampai) {
+                    Alert.alert(
+                      'Tanggal tidak valid',
+                      'Tanggal Dari tidak boleh lebih besar dari tanggal Sampai.',
+                    );
+                    return;
+                  }
+
+                  setRange('custom');
+                  setShowCustom(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: 14,
+                  borderRadius: 12,
+                  backgroundColor: Colors.primary,
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    fontWeight: '700',
+                    color: '#fff',
+                  }}
+                >
+                  Terapkan
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {showPicker && (
+        <DateTimePicker
+          value={
+            new Date(
+              (showPicker === 'dari' ? customDari : customSampai) ||
+                todayString(),
+            )
+          }
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowPicker(null);
+
+            if (!selectedDate) return;
+
+            const tanggal = toLocalDateString(selectedDate);
+
+            if (showPicker === 'dari') {
+              setCustomDari(tanggal);
+            } else {
+              setCustomSampai(tanggal);
+            }
+          }}
+        />
+      )}
     </Modal>
   );
 }
@@ -286,14 +539,14 @@ function TerlarisModal({ visible, onClose }: any) {
 // ── StokModal ─────────────────────────────────────────────────────────────────
 function StokModal({ visible, onClose }: any) {
   const [produkList, setProdukList] = useState<any[]>([]);
-  const [filterStok, setFilterStok] = useState<"menipis" | "semua">("menipis");
+  const [filterStok, setFilterStok] = useState<'menipis' | 'semua'>('menipis');
   const [editStok, setEditStok] = useState<any>(null);
-  const [tambahVal, setTambahVal] = useState("");
-  const [search, setSearch] = useState("");
+  const [tambahVal, setTambahVal] = useState('');
+  const [search, setSearch] = useState('');
 
   const reload = useCallback(() => {
     if (!visible) return;
-    if (filterStok === "menipis") {
+    if (filterStok === 'menipis') {
       setProdukList(getProdukMenipis());
     } else {
       try {
@@ -317,72 +570,75 @@ function StokModal({ visible, onClose }: any) {
   const handleTambahStok = () => {
     const jumlah = parseInt(tambahVal) || 0;
     if (jumlah <= 0) {
-      Alert.alert("Error", "Jumlah harus lebih dari 0");
+      Alert.alert('Error', 'Jumlah harus lebih dari 0');
       return;
     }
     updateStokProduk(editStok.id, editStok.stok + jumlah);
     setEditStok(null);
-    setTambahVal("");
+    setTambahVal('');
     reload();
   };
 
   return (
     <>
       <Modal visible={visible} animationType="slide">
-        <SafeAreaView style={m.safe} edges={["top"]}>
+        <SafeAreaView style={m.safe} edges={['top']}>
           <View style={m.header}>
             <TouchableOpacity onPress={onClose} style={m.backBtn}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
             </TouchableOpacity>
             <Text style={m.headerTitle}>
-              {filterStok === "menipis" ? "Stok Menipis" : "Semua Produk"}
+              {filterStok === 'menipis' ? 'Stok Menipis' : 'Semua Produk'}
             </Text>
             <View style={{ width: 36 }} />
           </View>
           <View
             style={{
-              flexDirection: "row",
+              flexDirection: 'row',
               gap: 8,
               paddingHorizontal: 16,
               paddingBottom: 10,
               backgroundColor: Colors.primary,
-            }}>
-            {(["menipis", "semua"] as const).map((f) => (
+            }}
+          >
+            {(['menipis', 'semua'] as const).map((f) => (
               <TouchableOpacity
                 key={f}
                 style={{
                   flex: 1,
-                  alignItems: "center",
+                  alignItems: 'center',
                   paddingVertical: 8,
                   borderRadius: 10,
                   backgroundColor:
-                    filterStok === f ? "#fff" : "rgba(255,255,255,0.12)",
+                    filterStok === f ? '#fff' : 'rgba(255,255,255,0.12)',
                 }}
                 onPress={() => {
                   setFilterStok(f);
-                  setSearch("");
-                }}>
+                  setSearch('');
+                }}
+              >
                 <Text
                   style={{
                     fontSize: 12,
-                    fontWeight: "700",
+                    fontWeight: '700',
                     color:
                       filterStok === f
                         ? Colors.primary
-                        : "rgba(255,255,255,0.65)",
-                  }}>
-                  {f === "menipis" ? "⚠️ Stok Menipis" : "📦 Semua Produk"}
+                        : 'rgba(255,255,255,0.65)',
+                  }}
+                >
+                  {f === 'menipis' ? '⚠️ Stok Menipis' : '📦 Semua Produk'}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          {filterStok === "semua" && (
+          {filterStok === 'semua' && (
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: 8,
-                backgroundColor: "#fff",
+                backgroundColor: '#fff',
                 marginHorizontal: 14,
                 marginBottom: 8,
                 borderRadius: 12,
@@ -390,7 +646,8 @@ function StokModal({ visible, onClose }: any) {
                 paddingVertical: 10,
                 borderWidth: 0.5,
                 borderColor: Colors.border,
-              }}>
+              }}
+            >
               <Ionicons
                 name="search-outline"
                 size={16}
@@ -404,7 +661,7 @@ function StokModal({ visible, onClose }: any) {
                 onChangeText={setSearch}
               />
               {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch("")}>
+                <TouchableOpacity onPress={() => setSearch('')}>
                   <Ionicons
                     name="close-circle"
                     size={16}
@@ -421,7 +678,7 @@ function StokModal({ visible, onClose }: any) {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={m.empty}>
-                {filterStok === "menipis" ? (
+                {filterStok === 'menipis' ? (
                   <>
                     <Ionicons
                       name="checkmark-circle-outline"
@@ -455,9 +712,10 @@ function StokModal({ visible, onClose }: any) {
                     habis && m.stokCardHabis,
                     aman && {
                       borderColor: Colors.border,
-                      backgroundColor: "#fff",
+                      backgroundColor: '#fff',
                     },
-                  ]}>
+                  ]}
+                >
                   <View
                     style={[
                       m.stokIcon,
@@ -468,14 +726,15 @@ function StokModal({ visible, onClose }: any) {
                             ? Colors.warningLight
                             : Colors.successLight,
                       },
-                    ]}>
+                    ]}
+                  >
                     <Ionicons
                       name={
                         habis
-                          ? "close-circle-outline"
+                          ? 'close-circle-outline'
                           : menipis
-                            ? "alert-circle-outline"
-                            : "checkmark-circle-outline"
+                            ? 'alert-circle-outline'
+                            : 'checkmark-circle-outline'
                       }
                       size={22}
                       color={
@@ -490,10 +749,10 @@ function StokModal({ visible, onClose }: any) {
                   <View style={{ flex: 1 }}>
                     <Text style={m.stokNama}>{item.nama}</Text>
                     <Text style={m.stokKat}>
-                      {item.kategori_nama || "Tanpa kategori"}
+                      {item.kategori_nama || 'Tanpa kategori'}
                     </Text>
                   </View>
-                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
                     <Text
                       style={[
                         m.stokSisa,
@@ -504,16 +763,18 @@ function StokModal({ visible, onClose }: any) {
                               ? Colors.warning
                               : Colors.success,
                         },
-                      ]}>
-                      {habis ? "HABIS" : `Sisa ${item.stok}`}
+                      ]}
+                    >
+                      {habis ? 'HABIS' : `Sisa ${item.stok}`}
                     </Text>
                     <Text style={m.stokMin}>Min. {item.stok_minimum || 5}</Text>
                     <TouchableOpacity
                       style={sk.addBtn}
                       onPress={() => {
                         setEditStok(item);
-                        setTambahVal("");
-                      }}>
+                        setTambahVal('');
+                      }}
+                    >
                       <Ionicons name="add" size={12} color={Colors.success} />
                       <Text style={sk.addBtnTxt}>Tambah</Text>
                     </TouchableOpacity>
@@ -535,16 +796,16 @@ function StokModal({ visible, onClose }: any) {
             <View style={sk.sheetHandle} />
             <Text style={sk.sheetTitle}>Tambah Stok</Text>
             <Text style={sk.sheetSub}>
-              {editStok?.nama} · Stok sekarang:{" "}
-              <Text style={{ fontWeight: "800", color: Colors.text }}>
+              {editStok?.nama} · Stok sekarang:{' '}
+              <Text style={{ fontWeight: '800', color: Colors.text }}>
                 {editStok?.stok}
               </Text>
             </Text>
-            {tambahVal !== "" && (
+            {tambahVal !== '' && (
               <View style={sk.previewBox}>
                 <Text style={sk.previewLbl}>Stok setelah ditambah</Text>
                 <Text style={sk.previewVal}>
-                  {editStok?.stok} + {tambahVal} ={" "}
+                  {editStok?.stok} + {tambahVal} ={' '}
                   <Text style={{ color: Colors.success }}>
                     {editStok?.stok + (parseInt(tambahVal) || 0)}
                   </Text>
@@ -565,7 +826,8 @@ function StokModal({ visible, onClose }: any) {
                 <TouchableOpacity
                   key={v}
                   style={sk.quickChip}
-                  onPress={() => setTambahVal(v.toString())}>
+                  onPress={() => setTambahVal(v.toString())}
+                >
                   <Text style={sk.quickTxt}>+{v}</Text>
                 </TouchableOpacity>
               ))}
@@ -573,7 +835,8 @@ function StokModal({ visible, onClose }: any) {
             <View style={sk.btnRow}>
               <TouchableOpacity
                 style={sk.btnBatal}
-                onPress={() => setEditStok(null)}>
+                onPress={() => setEditStok(null)}
+              >
                 <Text style={sk.btnBatalTxt}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -582,7 +845,8 @@ function StokModal({ visible, onClose }: any) {
                   (!tambahVal || parseInt(tambahVal) <= 0) && { opacity: 0.5 },
                 ]}
                 onPress={handleTambahStok}
-                disabled={!tambahVal || parseInt(tambahVal) <= 0}>
+                disabled={!tambahVal || parseInt(tambahVal) <= 0}
+              >
                 <Ionicons name="checkmark" size={16} color="#fff" />
                 <Text style={sk.btnSimpanTxt}>Simpan</Text>
               </TouchableOpacity>
@@ -596,8 +860,8 @@ function StokModal({ visible, onClose }: any) {
 
 const sk = StyleSheet.create({
   addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 3,
     backgroundColor: Colors.successLight,
     borderRadius: 8,
@@ -606,14 +870,14 @@ const sk = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.successBorder,
   },
-  addBtnTxt: { fontSize: 10, fontWeight: "700", color: Colors.success },
+  addBtnTxt: { fontSize: 10, fontWeight: '700', color: Colors.success },
   overlay: {
     flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -624,12 +888,12 @@ const sk = StyleSheet.create({
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   sheetTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: '800',
     color: Colors.text,
     marginBottom: 4,
   },
@@ -643,10 +907,10 @@ const sk = StyleSheet.create({
   previewLbl: {
     fontSize: 10,
     color: Colors.success,
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: 2,
   },
-  previewVal: { fontSize: 16, fontWeight: "700", color: Colors.text },
+  previewVal: { fontSize: 16, fontWeight: '700', color: Colors.text },
   input: {
     backgroundColor: Colors.background,
     borderRadius: 14,
@@ -654,16 +918,16 @@ const sk = StyleSheet.create({
     borderColor: Colors.border,
     padding: 16,
     fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
+    fontWeight: '800',
+    textAlign: 'center',
     color: Colors.text,
     marginBottom: 12,
   },
   quickRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     marginBottom: 20,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   quickChip: {
     paddingHorizontal: 14,
@@ -673,27 +937,27 @@ const sk = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  quickTxt: { fontSize: 12, fontWeight: "700", color: Colors.primary },
-  btnRow: { flexDirection: "row", gap: 10, marginBottom: 40 },
+  quickTxt: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  btnRow: { flexDirection: 'row', gap: 10, marginBottom: 40 },
   btnBatal: {
     flex: 1,
     padding: 14,
     borderRadius: 12,
     backgroundColor: Colors.background,
-    alignItems: "center",
+    alignItems: 'center',
   },
-  btnBatalTxt: { fontWeight: "700", color: Colors.textMuted, fontSize: 14 },
+  btnBatalTxt: { fontWeight: '700', color: Colors.textMuted, fontSize: 14 },
   btnSimpan: {
     flex: 2,
     padding: 14,
     borderRadius: 12,
     backgroundColor: Colors.success,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 6,
   },
-  btnSimpanTxt: { fontWeight: "800", color: "#fff", fontSize: 14 },
+  btnSimpanTxt: { fontWeight: '800', color: '#fff', fontSize: 14 },
 });
 
 // ── PenjualanModal ────────────────────────────────────────────────────────────
@@ -706,17 +970,17 @@ function PenjualanModal({
   onClose: () => void;
   onShowStruk: (data: any) => void;
 }) {
-  type TabType = "statistik" | "rekap";
-  type MetodeType = "semua" | "tunai" | "transfer" | "qris" | "hutang";
-  type RangeType = "hari_ini" | "kemarin" | "7_hari" | "30_hari" | "custom";
+  type TabType = 'statistik' | 'rekap';
+  type MetodeType = 'semua' | 'tunai' | 'transfer' | 'qris' | 'hutang';
+  type RangeType = 'hari_ini' | 'kemarin' | '7_hari' | '30_hari' | 'custom';
 
-  const [tab, setTab] = useState<TabType>("statistik");
-  const [metodeFilter, setMetode] = useState<MetodeType>("semua");
+  const [tab, setTab] = useState<TabType>('statistik');
+  const [metodeFilter, setMetode] = useState<MetodeType>('semua');
   const [omset7, setOmset7] = useState<any[]>([]);
   const [trxList, setTrxList] = useState<any[]>([]);
-  const [range, setRange] = useState<RangeType>("hari_ini");
-  const [customDari, setCustomDari] = useState("");
-  const [customSampai, setCustomSampai] = useState("");
+  const [range, setRange] = useState<RangeType>('hari_ini');
+  const [customDari, setCustomDari] = useState('');
+  const [customSampai, setCustomSampai] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [ringkasan, setRingkasan] = useState({
     trx: 0,
@@ -729,56 +993,56 @@ function PenjualanModal({
     Record<string, number>
   >({});
   const [selectedTrx, setSelectedTrx] = useState<any>(null);
-  const [showPicker, setShowPicker] = useState<"dari" | "sampai" | null>(null);
+  const [showPicker, setShowPicker] = useState<'dari' | 'sampai' | null>(null);
   const { currentUser } = useAuthStore();
   const kasirFilter =
-    currentUser?.role === "kasir" ? currentUser.nama : undefined;
+    currentUser?.role === 'kasir' ? currentUser.nama : undefined;
 
   const METODE_OPTS = [
     {
-      key: "semua",
-      label: "Semua",
+      key: 'semua',
+      label: 'Semua',
       color: Colors.primary,
       bg: Colors.primaryLight,
     },
     {
-      key: "tunai",
-      label: "Tunai",
+      key: 'tunai',
+      label: 'Tunai',
       color: Colors.success,
       bg: Colors.successLight,
     },
-    { key: "transfer", label: "TF", color: "#7C3AED", bg: "#F5F3FF" },
-    { key: "qris", label: "QRIS", color: Colors.info, bg: Colors.infoLight },
+    { key: 'transfer', label: 'TF', color: '#7C3AED', bg: '#F5F3FF' },
+    { key: 'qris', label: 'QRIS', color: Colors.info, bg: Colors.infoLight },
     {
-      key: "hutang",
-      label: "Hutang",
+      key: 'hutang',
+      label: 'Hutang',
       color: Colors.danger,
       bg: Colors.dangerLight,
     },
   ];
 
   const RANGES = [
-    { key: "hari_ini", label: "Hari ini" },
-    { key: "kemarin", label: "Kemarin" },
-    { key: "7_hari", label: "7 Hari" },
-    { key: "30_hari", label: "30 Hari" },
-    { key: "custom", label: "Custom" },
+    { key: 'hari_ini', label: 'Hari ini' },
+    { key: 'kemarin', label: 'Kemarin' },
+    { key: '7_hari', label: '7 Hari' },
+    { key: '30_hari', label: '30 Hari' },
+    { key: 'custom', label: 'Custom' },
   ];
 
   function getRangeDate(r: RangeType) {
     const today = todayString();
     const d = new Date();
-    if (r === "hari_ini") return { dari: today, sampai: today };
-    if (r === "kemarin") {
+    if (r === 'hari_ini') return { dari: today, sampai: today };
+    if (r === 'kemarin') {
       d.setDate(d.getDate() - 1);
       const k = toLocalDateString(d); // ✅ fix
       return { dari: k, sampai: k };
     }
-    if (r === "7_hari") {
+    if (r === '7_hari') {
       d.setDate(d.getDate() - 6);
       return { dari: toLocalDateString(d), sampai: today }; // ✅ fix
     }
-    if (r === "30_hari") {
+    if (r === '30_hari') {
       d.setDate(d.getDate() - 29);
       return { dari: toLocalDateString(d), sampai: today }; // ✅ fix
     }
@@ -791,11 +1055,11 @@ function PenjualanModal({
     if (!visible) return;
     const { dari, sampai } = getRangeDate(range);
     setOmset7(getOmset7Hari(kasirFilter));
-    console.log("RANGE =", dari, sampai);
+    console.log('RANGE =', dari, sampai);
 
     const r = getRingkasanByRange(dari, sampai, kasirFilter);
 
-    console.log("RINGKASAN RANGE =", r);
+    console.log('RINGKASAN RANGE =', r);
 
     setRingkasan(r);
     setPengeluaranRange(getTotalPengeluaranByRange(dari, sampai));
@@ -803,7 +1067,7 @@ function PenjualanModal({
     setProfitPerMetode(getProfitByMetode(dari, sampai, kasirFilter));
     const all = getTrxByDateRange(dari, sampai, undefined, kasirFilter);
     setTrxList(
-      metodeFilter === "semua"
+      metodeFilter === 'semua'
         ? all
         : all.filter((t: any) => t.metode_bayar === metodeFilter),
     );
@@ -816,11 +1080,11 @@ function PenjualanModal({
   );
 
   const handleHapusTrx = (item: any) => {
-    Alert.alert("Hapus Transaksi", `Hapus transaksi ${item.no_trx}?`, [
-      { text: "Batal", style: "cancel" },
+    Alert.alert('Hapus Transaksi', `Hapus transaksi ${item.no_trx}?`, [
+      { text: 'Batal', style: 'cancel' },
       {
-        text: "Hapus",
-        style: "destructive",
+        text: 'Hapus',
+        style: 'destructive',
         onPress: () => {
           hapusTransaksi(item.id);
           setSelectedTrx(null);
@@ -831,7 +1095,7 @@ function PenjualanModal({
   };
 
   const maxOmset = Math.max(...omset7.map((o) => o.omset), 1);
-  const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
   // ── BARU: summaryMetode sekarang include profit per metode ────────────────
   const summaryMetode = METODE_OPTS.slice(1)
@@ -844,7 +1108,7 @@ function PenjualanModal({
       // Ambil profit dari getProfitByMetode — dihitung dari semua trx range, bukan hanya filtered
       // Jika filter metode aktif, hitung ulang dari filtered saja
       const profitMetode =
-        metodeFilter === "semua"
+        metodeFilter === 'semua'
           ? profitPerMetode[mt.key] || 0
           : filtered.length > 0
             ? profitPerMetode[mt.key] || 0
@@ -860,7 +1124,7 @@ function PenjualanModal({
 
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaView style={m.safe} edges={["top"]}>
+      <SafeAreaView style={m.safe} edges={['top']}>
         <View style={m.header}>
           <TouchableOpacity onPress={onClose} style={m.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -878,8 +1142,9 @@ function PenjualanModal({
             paddingHorizontal: 16,
             paddingVertical: 10,
             gap: 6,
-            alignItems: "center",
-          }}>
+            alignItems: 'center',
+          }}
+        >
           {RANGES.map((r) => (
             <TouchableOpacity
               key={r.key}
@@ -888,24 +1153,26 @@ function PenjualanModal({
                   paddingHorizontal: 14,
                   paddingVertical: 6,
                   borderRadius: 20,
-                  backgroundColor: "rgba(255,255,255,0.1)",
+                  backgroundColor: 'rgba(255,255,255,0.1)',
                 },
-                range === r.key && { backgroundColor: "#fff" },
+                range === r.key && { backgroundColor: '#fff' },
               ]}
               onPress={() => {
                 setRange(r.key as RangeType);
-                if (r.key === "custom") setShowCustom(true);
-              }}>
+                if (r.key === 'custom') setShowCustom(true);
+              }}
+            >
               <Text
                 style={[
                   {
                     fontSize: 11,
-                    fontWeight: "700",
-                    color: "rgba(255,255,255,0.7)",
+                    fontWeight: '700',
+                    color: 'rgba(255,255,255,0.7)',
                   },
                   range === r.key && { color: Colors.primary },
-                ]}>
-                {r.key === "custom" && customDari
+                ]}
+              >
+                {r.key === 'custom' && customDari
                   ? `${customDari.slice(5)} → ${customSampai.slice(5)}`
                   : r.label}
               </Text>
@@ -915,60 +1182,62 @@ function PenjualanModal({
 
         {/* Tab */}
         <View style={pj.tabRow}>
-          {(["statistik", "rekap"] as TabType[]).map((t) => (
+          {(['statistik', 'rekap'] as TabType[]).map((t) => (
             <TouchableOpacity
               key={t}
               style={[pj.tab, tab === t && pj.tabActive]}
-              onPress={() => setTab(t)}>
+              onPress={() => setTab(t)}
+            >
               <Ionicons
                 name={
-                  t === "statistik" ? "bar-chart-outline" : "receipt-outline"
+                  t === 'statistik' ? 'bar-chart-outline' : 'receipt-outline'
                 }
                 size={14}
-                color={tab === t ? Colors.primary : "rgba(255,255,255,0.5)"}
+                color={tab === t ? Colors.primary : 'rgba(255,255,255,0.5)'}
               />
               <Text style={[pj.tabTxt, tab === t && pj.tabTxtActive]}>
-                {t === "statistik" ? "Statistik" : "Rekap Transaksi"}
+                {t === 'statistik' ? 'Statistik' : 'Rekap Transaksi'}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* TAB STATISTIK */}
-        {tab === "statistik" && (
+        {tab === 'statistik' && (
           <ScrollView
             contentContainerStyle={{ padding: 16, gap: 14 }}
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+          >
             {/* Ringkasan total */}
             <View style={m.statGrid}>
               {[
                 {
-                  label: "Omset",
+                  label: 'Omset',
                   val: formatRupiah(ringkasan.omset),
                   color: NAVY,
                 },
                 {
-                  label: "Profit",
+                  label: 'Profit',
                   val: formatRupiah(ringkasan.profit),
                   color: Colors.success,
                 },
                 {
-                  label: "Transaksi",
+                  label: 'Transaksi',
                   val: ringkasan.trx.toString(),
                   color: Colors.info,
                 },
                 {
-                  label: "Diskon",
+                  label: 'Diskon',
                   val: formatRupiah(ringkasan.diskon),
                   color: Colors.danger,
                 },
                 {
-                  label: "Pengeluaran",
+                  label: 'Pengeluaran',
                   val: formatRupiah(pengeluaranRange),
                   color: Colors.danger,
                 },
                 {
-                  label: "Laba Bersih",
+                  label: 'Laba Bersih',
                   val: formatRupiah(
                     (Number(ringkasan.profit) || 0) - pengeluaranRange,
                   ),
@@ -993,36 +1262,37 @@ function PenjualanModal({
                   {summaryMetode.map((mt) => (
                     <View
                       key={mt.key}
-                      style={[pj.metodeCard, { borderLeftColor: mt.color }]}>
+                      style={[pj.metodeCard, { borderLeftColor: mt.color }]}
+                    >
                       {/* Icon metode */}
                       <View style={[pj.metodeDot, { backgroundColor: mt.bg }]}>
                         <Text style={{ fontSize: 18 }}>
-                          {mt.key === "tunai"
-                            ? "💵"
-                            : mt.key === "transfer"
-                              ? "📱"
-                              : mt.key === "qris"
-                                ? "📲"
-                                : "🕐"}
+                          {mt.key === 'tunai'
+                            ? '💵'
+                            : mt.key === 'transfer'
+                              ? '📱'
+                              : mt.key === 'qris'
+                                ? '📲'
+                                : '🕐'}
                         </Text>
                       </View>
                       {/* Info metode */}
                       <View style={{ flex: 1 }}>
                         <View
                           style={{
-                            flexDirection: "row",
-                            alignItems: "center",
+                            flexDirection: 'row',
+                            alignItems: 'center',
                             gap: 6,
                             marginBottom: 4,
-                          }}>
+                          }}
+                        >
                           <Text style={pj.metodeLabel}>{mt.label}</Text>
                           <View
-                            style={[
-                              pj.metodeBadge,
-                              { backgroundColor: mt.bg },
-                            ]}>
+                            style={[pj.metodeBadge, { backgroundColor: mt.bg }]}
+                          >
                             <Text
-                              style={[pj.metodeBadgeTxt, { color: mt.color }]}>
+                              style={[pj.metodeBadgeTxt, { color: mt.color }]}
+                            >
                               {mt.count}×
                             </Text>
                           </View>
@@ -1030,12 +1300,14 @@ function PenjualanModal({
                         {/* Omset */}
                         <View
                           style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}>
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
                           <Text
-                            style={{ fontSize: 10, color: Colors.textMuted }}>
+                            style={{ fontSize: 10, color: Colors.textMuted }}
+                          >
                             Omset
                           </Text>
                           <Text style={[pj.metodeTotal, { color: mt.color }]}>
@@ -1046,45 +1318,50 @@ function PenjualanModal({
                         {mt.profit > 0 && (
                           <View
                             style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                              alignItems: "center",
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
                               marginTop: 3,
                               paddingTop: 3,
                               borderTopWidth: 0.5,
                               borderTopColor: Colors.borderLight,
-                            }}>
+                            }}
+                          >
                             <View
                               style={{
-                                flexDirection: "row",
-                                alignItems: "center",
+                                flexDirection: 'row',
+                                alignItems: 'center',
                                 gap: 3,
-                              }}>
+                              }}
+                            >
                               <Ionicons
                                 name="trending-up-outline"
                                 size={10}
                                 color={Colors.success}
                               />
                               <Text
-                                style={{ fontSize: 10, color: Colors.success }}>
+                                style={{ fontSize: 10, color: Colors.success }}
+                              >
                                 Profit
                               </Text>
                             </View>
                             <Text
                               style={{
                                 fontSize: 12,
-                                fontWeight: "800",
+                                fontWeight: '800',
                                 color: Colors.success,
-                              }}>
+                              }}
+                            >
                               {formatRupiah(mt.profit)}
                             </Text>
                           </View>
                         )}
                         {/* Margin % */}
                         {mt.total > 0 && mt.profit > 0 && (
-                          <View style={{ alignSelf: "flex-end", marginTop: 2 }}>
+                          <View style={{ alignSelf: 'flex-end', marginTop: 2 }}>
                             <Text
-                              style={{ fontSize: 9, color: Colors.textMuted }}>
+                              style={{ fontSize: 9, color: Colors.textMuted }}
+                            >
                               Margin {Math.round((mt.profit / mt.total) * 100)}%
                             </Text>
                           </View>
@@ -1104,9 +1381,10 @@ function PenjualanModal({
                   <View
                     style={{
                       flex: 1,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}>
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
                     <Text style={{ color: Colors.textLight, fontSize: 12 }}>
                       Belum ada data
                     </Text>
@@ -1123,10 +1401,10 @@ function PenjualanModal({
                       <View key={i} style={m.barCol}>
                         <Text style={m.barLbl}>
                           {o.omset >= 1000000
-                            ? (o.omset / 1000000).toFixed(1) + "jt"
+                            ? (o.omset / 1000000).toFixed(1) + 'jt'
                             : o.omset >= 1000
-                              ? Math.round(o.omset / 1000) + "rb"
-                              : o.omset || ""}
+                              ? Math.round(o.omset / 1000) + 'rb'
+                              : o.omset || ''}
                         </Text>
                         <View
                           style={[
@@ -1142,8 +1420,9 @@ function PenjualanModal({
                         <Text
                           style={[
                             m.barDay,
-                            isToday && { color: NAVY, fontWeight: "700" },
-                          ]}>
+                            isToday && { color: NAVY, fontWeight: '700' },
+                          ]}
+                        >
                           {DAYS[d.getDay()]}
                         </Text>
                       </View>
@@ -1156,13 +1435,14 @@ function PenjualanModal({
         )}
 
         {/* TAB REKAP */}
-        {tab === "rekap" && (
+        {tab === 'rekap' && (
           <>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={pj.filterScroll}
-              contentContainerStyle={pj.filterContent}>
+              contentContainerStyle={pj.filterContent}
+            >
               {METODE_OPTS.map((mt) => (
                 <TouchableOpacity
                   key={mt.key}
@@ -1173,12 +1453,14 @@ function PenjualanModal({
                       borderColor: mt.color,
                     },
                   ]}
-                  onPress={() => setMetode(mt.key as MetodeType)}>
+                  onPress={() => setMetode(mt.key as MetodeType)}
+                >
                   <Text
                     style={[
                       pj.filterTxt,
-                      metodeFilter === mt.key && { color: "#fff" },
-                    ]}>
+                      metodeFilter === mt.key && { color: '#fff' },
+                    ]}
+                  >
                     {mt.label}
                   </Text>
                 </TouchableOpacity>
@@ -1192,27 +1474,29 @@ function PenjualanModal({
                   0,
                 );
                 const profitFilter =
-                  metodeFilter === "semua"
+                  metodeFilter === 'semua'
                     ? ringkasan.profit // total semua metode
                     : profitPerMetode[metodeFilter] || 0; // profit metode terpilih saja
                 return (
                   <View style={pj.summaryStrip}>
                     <View
                       style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}>
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <Text style={pj.summaryTxt}>
                         {trxList.length} transaksi · {formatRupiah(omsetFilter)}
                       </Text>
                       {profitFilter > 0 && (
                         <View
                           style={{
-                            flexDirection: "row",
-                            alignItems: "center",
+                            flexDirection: 'row',
+                            alignItems: 'center',
                             gap: 4,
-                          }}>
+                          }}
+                        >
                           <Ionicons
                             name="trending-up-outline"
                             size={11}
@@ -1221,9 +1505,10 @@ function PenjualanModal({
                           <Text
                             style={{
                               fontSize: 11,
-                              fontWeight: "700",
+                              fontWeight: '700',
                               color: Colors.success,
-                            }}>
+                            }}
+                          >
                             {formatRupiah(profitFilter)}
                           </Text>
                         </View>
@@ -1241,8 +1526,8 @@ function PenjualanModal({
                 <View style={m.empty}>
                   <Ionicons name="receipt-outline" size={40} color="#D1D5DB" />
                   <Text style={m.emptyTxt}>
-                    {metodeFilter === "semua"
-                      ? "Belum ada transaksi"
+                    {metodeFilter === 'semua'
+                      ? 'Belum ada transaksi'
                       : `Tidak ada transaksi ${metodeFilter}`}
                   </Text>
                 </View>
@@ -1256,13 +1541,14 @@ function PenjualanModal({
                       { borderLeftWidth: 3, borderLeftColor: mc },
                     ]}
                     onPress={() => setSelectedTrx(item)}
-                    activeOpacity={0.8}>
+                    activeOpacity={0.8}
+                  >
                     <View style={m.trxHeader}>
                       <View>
                         <Text style={m.trxNo}>{item.no_trx}</Text>
                         <Text style={m.trxTime}>
-                          {item.waktu?.slice(0, 16).replace("T", " ")} ·{" "}
-                          {item.kasir || "Admin"}
+                          {item.waktu?.slice(0, 16).replace('T', ' ')} ·{' '}
+                          {item.kasir || 'Admin'}
                         </Text>
                       </View>
                       <View style={[m.metodePill, { backgroundColor: mb }]}>
@@ -1282,18 +1568,20 @@ function PenjualanModal({
                     </View>
                     <View
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
+                        flexDirection: 'row',
+                        alignItems: 'center',
                         gap: 4,
                         marginTop: 6,
-                      }}>
+                      }}
+                    >
                       <Ionicons
                         name="eye-outline"
                         size={11}
                         color={Colors.textDisabled}
                       />
                       <Text
-                        style={{ fontSize: 10, color: Colors.textDisabled }}>
+                        style={{ fontSize: 10, color: Colors.textDisabled }}
+                      >
                         Tap untuk detail & struk
                       </Text>
                     </View>
@@ -1309,18 +1597,21 @@ function PenjualanModal({
           <View
             style={{
               flex: 1,
-              backgroundColor: "rgba(0,0,0,0.5)",
-              justifyContent: "center",
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
               padding: 24,
-            }}>
+            }}
+          >
             <View
               style={{
-                backgroundColor: "#fff",
+                backgroundColor: '#fff',
                 borderRadius: 20,
                 padding: 20,
-              }}>
+              }}
+            >
               <Text
-                style={{ fontSize: 16, fontWeight: "800", marginBottom: 16 }}>
+                style={{ fontSize: 16, fontWeight: '800', marginBottom: 16 }}
+              >
                 Pilih Rentang Tanggal
               </Text>
               <Text
@@ -1328,7 +1619,8 @@ function PenjualanModal({
                   fontSize: 12,
                   color: Colors.textMuted,
                   marginBottom: 6,
-                }}>
+                }}
+              >
                 Dari
               </Text>
               <TouchableOpacity
@@ -1340,15 +1632,17 @@ function PenjualanModal({
                   borderColor: Colors.border,
                   marginBottom: 12,
                 }}
-                onPress={() => setShowPicker("dari")}>
-                <Text>{customDari || "Pilih tanggal"}</Text>
+                onPress={() => setShowPicker('dari')}
+              >
+                <Text>{customDari || 'Pilih tanggal'}</Text>
               </TouchableOpacity>
               <Text
                 style={{
                   fontSize: 12,
                   color: Colors.textMuted,
                   marginBottom: 6,
-                }}>
+                }}
+              >
                 Sampai
               </Text>
               <TouchableOpacity
@@ -1360,21 +1654,23 @@ function PenjualanModal({
                   borderColor: Colors.border,
                   marginBottom: 16,
                 }}
-                onPress={() => setShowPicker("sampai")}>
-                <Text>{customSampai || "Pilih tanggal"}</Text>
+                onPress={() => setShowPicker('sampai')}
+              >
+                <Text>{customSampai || 'Pilih tanggal'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
                   backgroundColor: Colors.primary,
                   borderRadius: 12,
                   padding: 14,
-                  alignItems: "center",
+                  alignItems: 'center',
                 }}
                 onPress={() => {
                   setShowCustom(false);
                   loadData();
-                }}>
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>
                   Terapkan
                 </Text>
               </TouchableOpacity>
@@ -1391,7 +1687,7 @@ function PenjualanModal({
               setShowPicker(null);
               if (date) {
                 const formatted = toLocalDateString(date);
-                showPicker === "dari"
+                showPicker === 'dari'
                   ? setCustomDari(formatted)
                   : setCustomSampai(formatted);
               }
@@ -1401,46 +1697,50 @@ function PenjualanModal({
 
         {/* Modal Detail Transaksi */}
         <Modal visible={!!selectedTrx} transparent animationType="slide">
-          <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
             <TouchableOpacity
               style={StyleSheet.absoluteFillObject}
               onPress={() => setSelectedTrx(null)}
-              activeOpacity={1}>
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} />
+              activeOpacity={1}
+            >
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} />
             </TouchableOpacity>
             {selectedTrx && (
               <View
                 style={{
-                  backgroundColor: "#fff",
+                  backgroundColor: '#fff',
                   borderTopLeftRadius: 24,
                   borderTopRightRadius: 24,
                   padding: 20,
-                  maxHeight: "82%",
-                }}>
+                  maxHeight: '82%',
+                }}
+              >
                 <View
                   style={{
                     width: 40,
                     height: 4,
                     backgroundColor: Colors.border,
                     borderRadius: 2,
-                    alignSelf: "center",
+                    alignSelf: 'center',
                     marginBottom: 16,
                   }}
                 />
                 <View
                   style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
                     marginBottom: 16,
-                  }}>
+                  }}
+                >
                   <View>
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: "800",
+                        fontWeight: '800',
                         color: Colors.text,
-                      }}>
+                      }}
+                    >
                       {selectedTrx.no_trx}
                     </Text>
                     <Text
@@ -1448,18 +1748,19 @@ function PenjualanModal({
                         fontSize: 12,
                         color: Colors.textLight,
                         marginTop: 2,
-                      }}>
-                      {selectedTrx.waktu?.slice(0, 16).replace("T", " ")}
+                      }}
+                    >
+                      {selectedTrx.waktu?.slice(0, 16).replace('T', ' ')}
                     </Text>
                     <Text style={{ fontSize: 11, color: Colors.textLight }}>
-                      Kasir: {selectedTrx.kasir || "Admin"}
+                      Kasir: {selectedTrx.kasir || 'Admin'}
                     </Text>
                   </View>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
+                        flexDirection: 'row',
+                        alignItems: 'center',
                         gap: 5,
                         backgroundColor: Colors.primaryLight,
                         borderRadius: 10,
@@ -1487,7 +1788,8 @@ function PenjualanModal({
                           metode: selectedTrx.metode_bayar,
                           waktu: selectedTrx.waktu,
                         });
-                      }}>
+                      }}
+                    >
                       <Ionicons
                         name="receipt-outline"
                         size={14}
@@ -1496,23 +1798,25 @@ function PenjualanModal({
                       <Text
                         style={{
                           color: Colors.primary,
-                          fontWeight: "700",
+                          fontWeight: '700',
                           fontSize: 12,
-                        }}>
+                        }}
+                      >
                         Struk
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
+                        flexDirection: 'row',
+                        alignItems: 'center',
                         gap: 5,
                         backgroundColor: Colors.dangerLight,
                         borderRadius: 10,
                         paddingHorizontal: 12,
                         paddingVertical: 8,
                       }}
-                      onPress={() => handleHapusTrx(selectedTrx)}>
+                      onPress={() => handleHapusTrx(selectedTrx)}
+                    >
                       <Ionicons
                         name="trash-outline"
                         size={14}
@@ -1521,9 +1825,10 @@ function PenjualanModal({
                       <Text
                         style={{
                           color: Colors.danger,
-                          fontWeight: "700",
+                          fontWeight: '700',
                           fontSize: 12,
-                        }}>
+                        }}
+                      >
                         Hapus
                       </Text>
                     </TouchableOpacity>
@@ -1537,76 +1842,85 @@ function PenjualanModal({
                     marginTop: 14,
                     paddingTop: 14,
                     gap: 6,
-                  }}>
+                  }}
+                >
                   <View
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                    }}>
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                    }}
+                  >
                     <Text style={{ fontSize: 13, color: Colors.textMuted }}>
                       Subtotal
                     </Text>
                     <Text
                       style={{
                         fontSize: 13,
-                        fontWeight: "600",
+                        fontWeight: '600',
                         color: Colors.text,
-                      }}>
+                      }}
+                    >
                       {formatRupiah(selectedTrx.subtotal)}
                     </Text>
                   </View>
                   {selectedTrx.diskon > 0 && (
                     <View
                       style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                      }}>
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       <Text style={{ fontSize: 13, color: Colors.textMuted }}>
                         Diskon
                       </Text>
                       <Text
                         style={{
                           fontSize: 13,
-                          fontWeight: "600",
+                          fontWeight: '600',
                           color: Colors.danger,
-                        }}>
+                        }}
+                      >
                         -{formatRupiah(selectedTrx.diskon)}
                       </Text>
                     </View>
                   )}
                   <View
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                       backgroundColor: Colors.primaryLight,
                       borderRadius: 10,
                       padding: 12,
                       marginTop: 4,
-                    }}>
+                    }}
+                  >
                     <Text
                       style={{
                         fontSize: 14,
-                        fontWeight: "800",
+                        fontWeight: '800',
                         color: Colors.primary,
-                      }}>
+                      }}
+                    >
                       TOTAL
                     </Text>
                     <Text
                       style={{
                         fontSize: 18,
-                        fontWeight: "900",
+                        fontWeight: '900',
                         color: Colors.primary,
-                      }}>
+                      }}
+                    >
                       {formatRupiah(selectedTrx.total)}
                     </Text>
                   </View>
                   <View
                     style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}>
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
                     <Text style={{ fontSize: 12, color: Colors.textMuted }}>
                       Metode Bayar
                     </Text>
@@ -1618,7 +1932,8 @@ function PenjualanModal({
                             selectedTrx.metode_bayar,
                           ).bg,
                         },
-                      ]}>
+                      ]}
+                    >
                       <Text
                         style={[
                           m.metodeTxt,
@@ -1626,7 +1941,8 @@ function PenjualanModal({
                             color: getMetodeColor(selectedTrx.metode_bayar)
                               .color,
                           },
-                        ]}>
+                        ]}
+                      >
                         {selectedTrx.metode_bayar?.toUpperCase()}
                       </Text>
                     </View>
@@ -1644,7 +1960,7 @@ function PenjualanModal({
 // ── Main LaporanScreen ────────────────────────────────────────────────────────
 export default function LaporanScreen({ navigation }: any) {
   const [ring, setRing] = useState({ trx: 0, omset: 0, diskon: 0, qty: 0 });
-  const [namaToko, setNamaToko] = useState("");
+  const [namaToko, setNamaToko] = useState('');
   const [showRekap, setShowRekap] = useState(false);
   const [showTerlaris, setShowTerlaris] = useState(false);
   const [showStok, setShowStok] = useState(false);
@@ -1652,8 +1968,8 @@ export default function LaporanScreen({ navigation }: any) {
   const [strukData, setStrukData] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportPeriode, setExportPeriode] = useState<"harian" | "bulanan">(
-    "harian",
+  const [exportPeriode, setExportPeriode] = useState<'harian' | 'bulanan'>(
+    'harian',
   );
   const [exportBulan, setExportBulan] = useState(() =>
     todayString().slice(0, 7),
@@ -1662,7 +1978,7 @@ export default function LaporanScreen({ navigation }: any) {
   const totalPengeluaranHariIni = getTotalPengeluaranByRange(today, today);
   const { currentUser } = useAuthStore();
   const kasirFilter =
-    currentUser?.role === "kasir" ? currentUser.nama : undefined;
+    currentUser?.role === 'kasir' ? currentUser.nama : undefined;
 
   const labaKotor = Number((ring as any).profit) || 0;
   const labaBersih = labaKotor - totalPengeluaranHariIni;
@@ -1673,7 +1989,7 @@ export default function LaporanScreen({ navigation }: any) {
       // Paksa re-query setelah migrasi selesai
       const ringData = getRingkasan(todayString());
       setRing(ringData);
-      setNamaToko(getPengaturan().nama_toko || "Toko");
+      setNamaToko(getPengaturan().nama_toko || 'Toko');
     }, []),
   );
 
@@ -1705,40 +2021,40 @@ _Dikirim via Kasir WarungKu_`;
 
   // ── Export Excel dengan pilihan periode ─────────────────────────────────────
   const exportLaporanExcel = async (
-    periode: "harian" | "bulanan",
+    periode: 'harian' | 'bulanan',
     bulan?: string,
   ) => {
     setShowExportModal(false);
     setExporting(true);
     try {
-      const XLSX = require("xlsx");
-      const Sharing = require("expo-sharing");
-      const FileSystem = require("expo-file-system/legacy");
+      const XLSX = require('xlsx');
+      const Sharing = require('expo-sharing');
+      const FileSystem = require('expo-file-system/legacy');
       const db = getDB();
 
       // Tentukan range tanggal berdasarkan periode
       let dari: string, sampai: string, labelPeriode: string, fileLabel: string;
-      if (periode === "bulanan") {
+      if (periode === 'bulanan') {
         const thn = (bulan || today.slice(0, 7)).slice(0, 4);
         const bln = (bulan || today.slice(0, 7)).slice(5, 7);
         dari = `${thn}-${bln}-01`;
         // Akhir bulan
         const lastDay = new Date(parseInt(thn), parseInt(bln), 0).getDate();
-        sampai = `${thn}-${bln}-${String(lastDay).padStart(2, "0")}`;
+        sampai = `${thn}-${bln}-${String(lastDay).padStart(2, '0')}`;
         const BULAN_ID = [
-          "",
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "Mei",
-          "Jun",
-          "Jul",
-          "Ags",
-          "Sep",
-          "Okt",
-          "Nov",
-          "Des",
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Ags',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
         ];
         labelPeriode = `${BULAN_ID[parseInt(bln)]} ${thn}`;
         fileLabel = `${thn}${bln}`;
@@ -1746,43 +2062,48 @@ _Dikirim via Kasir WarungKu_`;
         dari = today;
         sampai = today;
         labelPeriode = formatTanggal(today);
-        fileLabel = today.replace(/-/g, "");
+        fileLabel = today.replace(/-/g, '');
       }
 
       const ring2 = getRingkasanByRange(dari, sampai, kasirFilter);
       const ringkasanData = [
         [
-          `Laporan ${periode === "bulanan" ? "Bulanan" : "Harian"} Kasir WarungKu`,
+          `Laporan ${periode === 'bulanan' ? 'Bulanan' : 'Harian'} Kasir WarungKu`,
         ],
-        ["Periode", labelPeriode],
-        ["Dari", dari],
-        ["Sampai", sampai],
-        ["Toko", namaToko],
+        ['Periode', labelPeriode],
+        ['Dari', dari],
+        ['Sampai', sampai],
+        ['Toko', namaToko],
         [],
-        ["RINGKASAN"],
-        ["Total Omset", ring2.omset],
-        ["Total Transaksi", ring2.trx],
-        ["Total Diskon", ring2.diskon],
-        ["Laba Kotor", ring2.profit ?? 0],
+        ['RINGKASAN'],
+        ['Total Omset', ring2.omset],
+        ['Total Transaksi', ring2.trx],
+        ['Total Diskon', ring2.diskon],
+        ['Laba Kotor', ring2.profit ?? 0],
       ];
 
       // Sheet 1: Ringkasan
       const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasanData);
 
       // Sheet 2: Rekap Transaksi
-      const trxList = getTrxByDateRange(dari, sampai, undefined, kasirFilter) as any[];
+      const trxList = getTrxByDateRange(
+        dari,
+        sampai,
+        undefined,
+        kasirFilter,
+      ) as any[];
       const wsTransaksi = XLSX.utils.json_to_sheet(
         trxList.map((t: any) => ({
-          "No Transaksi": t.no_trx,
-          Tanggal: t.waktu?.slice(0, 10) || "",
-          Waktu: t.waktu?.slice(11, 16) || "",
-          "Metode Bayar": t.metode_bayar?.toUpperCase(),
+          'No Transaksi': t.no_trx,
+          Tanggal: t.waktu?.slice(0, 10) || '',
+          Waktu: t.waktu?.slice(11, 16) || '',
+          'Metode Bayar': t.metode_bayar?.toUpperCase(),
           Subtotal: t.subtotal,
           Diskon: t.diskon || 0,
           Total: t.total,
           Bayar: t.bayar || 0,
           Kembalian: t.kembalian || 0,
-          Kasir: t.kasir || "Admin",
+          Kasir: t.kasir || 'Admin',
         })),
       );
 
@@ -1800,14 +2121,14 @@ _Dikirim via Kasir WarungKu_`;
       ) as any[];
       const wsDetail = XLSX.utils.json_to_sheet(
         detailItems.map((d: any) => ({
-          "No Transaksi": d.no_trx,
-          Tanggal: d.waktu?.slice(0, 10) || "",
-          Waktu: d.waktu?.slice(11, 16) || "",
+          'No Transaksi': d.no_trx,
+          Tanggal: d.waktu?.slice(0, 10) || '',
+          Waktu: d.waktu?.slice(11, 16) || '',
           Metode: d.metode_bayar?.toUpperCase(),
           Produk: d.nama_produk,
           Qty: d.qty,
-          "Harga Jual": d.harga,
-          "Harga Modal": d.harga_modal,
+          'Harga Jual': d.harga,
+          'Harga Modal': d.harga_modal,
           Subtotal: d.subtotal,
           Profit: d.profit_item,
         })),
@@ -1815,20 +2136,20 @@ _Dikirim via Kasir WarungKu_`;
 
       // Sheet 4: Per Metode
       const profitMetode = getProfitByMetode(dari, sampai, kasirFilter);
-      const perMetode = ["tunai", "transfer", "qris", "hutang"]
+      const perMetode = ['tunai', 'transfer', 'qris', 'hutang']
         .map((m) => {
           const filtered = trxList.filter((t: any) => t.metode_bayar === m);
           return {
-            "Metode Bayar": m.toUpperCase(),
-            "Jumlah Transaksi": filtered.length,
-            "Total Omset": filtered.reduce(
+            'Metode Bayar': m.toUpperCase(),
+            'Jumlah Transaksi': filtered.length,
+            'Total Omset': filtered.reduce(
               (s: number, t: any) => s + (t.total || 0),
               0,
             ),
             Profit: profitMetode[m] || 0,
           };
         })
-        .filter((m) => m["Jumlah Transaksi"] > 0);
+        .filter((m) => m['Jumlah Transaksi'] > 0);
       const wsMetode = XLSX.utils.json_to_sheet(perMetode);
 
       // Sheet 5: Produk Terlaris
@@ -1843,16 +2164,16 @@ _Dikirim via Kasir WarungKu_`;
       const wsTerlaris = XLSX.utils.json_to_sheet(
         terlaris.map((p: any, i: number) => ({
           Rank: i + 1,
-          "Nama Produk": p.nama_produk,
-          "Qty Terjual": p.total_qty,
-          "Total Omset": p.total_omset,
+          'Nama Produk': p.nama_produk,
+          'Qty Terjual': p.total_qty,
+          'Total Omset': p.total_omset,
         })),
       );
 
       // Khusus bulanan: tambah Sheet 6 rekap per hari
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, wsRingkasan, "Ringkasan");
-      if (periode === "bulanan") {
+      XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
+      if (periode === 'bulanan') {
         const perHari = db.getAllSync(
           `SELECT date(t.waktu) as tgl,
                   COUNT(*) as trx,
@@ -1870,35 +2191,35 @@ _Dikirim via Kasir WarungKu_`;
         const wsPerHari = XLSX.utils.json_to_sheet(
           perHari.map((r: any) => ({
             Tanggal: r.tgl,
-            "Jumlah Transaksi": r.trx,
+            'Jumlah Transaksi': r.trx,
             Omset: r.omset,
             Profit: r.profit,
           })),
         );
-        XLSX.utils.book_append_sheet(wb, wsPerHari, "Rekap Per Hari");
+        XLSX.utils.book_append_sheet(wb, wsPerHari, 'Rekap Per Hari');
       }
-      XLSX.utils.book_append_sheet(wb, wsTransaksi, "Transaksi");
-      XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Item");
-      XLSX.utils.book_append_sheet(wb, wsMetode, "Per Metode");
-      XLSX.utils.book_append_sheet(wb, wsTerlaris, "Produk Terlaris");
+      XLSX.utils.book_append_sheet(wb, wsTransaksi, 'Transaksi');
+      XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Item');
+      XLSX.utils.book_append_sheet(wb, wsMetode, 'Per Metode');
+      XLSX.utils.book_append_sheet(wb, wsTerlaris, 'Produk Terlaris');
 
-      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
       const fileName =
-        periode === "bulanan"
+        periode === 'bulanan'
           ? `LaporanBulanan_${fileLabel}.xlsx`
           : `LaporanHarian_${fileLabel}.xlsx`;
       const fileUri = FileSystem.cacheDirectory + fileName;
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
-        encoding: "base64",
+        encoding: 'base64',
       });
       await Sharing.shareAsync(fileUri, {
         mimeType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        dialogTitle: `Export Laporan ${periode === "bulanan" ? "Bulanan" : "Harian"}`,
-        UTI: "com.microsoft.excel.xlsx",
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        dialogTitle: `Export Laporan ${periode === 'bulanan' ? 'Bulanan' : 'Harian'}`,
+        UTI: 'com.microsoft.excel.xlsx',
       });
     } catch (e: any) {
-      Alert.alert("Gagal Export", e?.message || "Terjadi kesalahan");
+      Alert.alert('Gagal Export', e?.message || 'Terjadi kesalahan');
     } finally {
       setExporting(false);
     }
@@ -1906,74 +2227,75 @@ _Dikirim via Kasir WarungKu_`;
 
   useEffect(() => {
     if (strukData) {
-      navigation.navigate("Struk", strukData);
+      navigation.navigate('Struk', strukData);
       setStrukData(null);
     }
   }, [strukData]);
 
   const MENU = [
     {
-      key: "penjualan",
-      label: "Laporan Penjualan",
-      sub: "Chart, statistik, detail & profit",
-      icon: "bar-chart-outline",
-      color: "#EC4899",
-      bg: "#FDF2F8",
+      key: 'penjualan',
+      label: 'Laporan Penjualan',
+      sub: 'Chart, statistik, detail & profit',
+      icon: 'bar-chart-outline',
+      color: '#EC4899',
+      bg: '#FDF2F8',
       onPress: () => setShowPenjualan(true),
     },
     {
-      key: "terlaris",
-      label: "Produk Terlaris",
-      sub: "Produk paling banyak terjual",
-      icon: "trending-up-outline",
-      color: "#EF4444",
-      bg: "#FEF2F2",
+      key: 'terlaris',
+      label: 'Produk Terlaris',
+      sub: 'Produk paling banyak terjual',
+      icon: 'trending-up-outline',
+      color: '#EF4444',
+      bg: '#FEF2F2',
       onPress: () => setShowTerlaris(true),
     },
     {
-      key: "stok",
-      label: "Alert Stok",
-      sub: "Stok menipis / habis + tambah stok",
-      icon: "alert-circle-outline",
-      color: "#F59E0B",
-      bg: "#FFFBEB",
+      key: 'stok',
+      label: 'Alert Stok',
+      sub: 'Stok menipis / habis + tambah stok',
+      icon: 'alert-circle-outline',
+      color: '#F59E0B',
+      bg: '#FFFBEB',
       onPress: () => setShowStok(true),
     },
     {
-      key: "ai",
-      label: "Analisis WarungKu",
-      sub: "Insight cerdas dari data penjualan",
-      icon: "sparkles-outline",
-      color: "#4F46E5",
-      bg: "#EEF2FF",
-      onPress: () => navigation.navigate("AI"),
+      key: 'ai',
+      label: 'Analisis WarungKu',
+      sub: 'Insight cerdas dari data penjualan',
+      icon: 'sparkles-outline',
+      color: '#4F46E5',
+      bg: '#EEF2FF',
+      onPress: () => navigation.navigate('AI'),
     },
     {
-      key: "share",
-      label: "Share Laporan",
-      sub: "Bagikan ringkasan harian via WA",
-      icon: "share-social-outline",
-      color: "#10B981",
-      bg: "#F0FDF4",
+      key: 'share',
+      label: 'Share Laporan',
+      sub: 'Bagikan ringkasan harian via WA',
+      icon: 'share-social-outline',
+      color: '#10B981',
+      bg: '#F0FDF4',
       onPress: handleShare,
     },
   ];
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <View>
           <Text style={s.headerTitle}>Laporan</Text>
           <Text style={s.headerSub}>Analisis & statistik penjualan</Text>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
             style={[
               s.shareHeaderBtn,
-              { backgroundColor: "rgba(22,163,74,0.8)" },
+              { backgroundColor: 'rgba(22,163,74,0.8)' },
             ]}
             onPress={() => !exporting && setShowExportModal(true)}
-            disabled={exporting}>
+            disabled={exporting}
+          >
             {exporting ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -1989,7 +2311,8 @@ _Dikirim via Kasir WarungKu_`;
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         <View style={s.omsetCard}>
           <Text style={s.omsetDate}>{formatTanggal(todayString())}</Text>
           <Text style={s.omsetLabel}>Total Omset Hari Ini</Text>
@@ -1997,36 +2320,37 @@ _Dikirim via Kasir WarungKu_`;
           <View style={s.omsetStats}>
             {[
               {
-                label: "Transaksi",
+                label: 'Transaksi',
                 val: ring.trx.toString(),
-                icon: "receipt-outline",
-                color: "#60A5FA",
+                icon: 'receipt-outline',
+                color: '#60A5FA',
               },
               {
-                label: "Item Terjual",
+                label: 'Item Terjual',
                 val: ring.qty.toString(),
-                icon: "cube-outline",
-                color: "#34D399",
+                icon: 'cube-outline',
+                color: '#34D399',
               },
               {
-                label: "Laba Kotor",
+                label: 'Laba Kotor',
                 val: formatRupiah(labaKotor),
-                icon: "cash-outline",
-                color: "#A78BFA",
+                icon: 'cash-outline',
+                color: '#A78BFA',
               },
               {
-                label: "Diskon",
+                label: 'Diskon',
                 val: formatRupiah(ring.diskon),
-                icon: "pricetag-outline",
-                color: "#FCD34D",
+                icon: 'pricetag-outline',
+                color: '#FCD34D',
               },
             ].map((st, i) => (
               <View key={i} style={s.ostat}>
                 <View
                   style={[
                     s.ostatIcon,
-                    { backgroundColor: "rgba(255,255,255,0.1)" },
-                  ]}>
+                    { backgroundColor: 'rgba(255,255,255,0.1)' },
+                  ]}
+                >
                   <Ionicons name={st.icon as any} size={14} color={st.color} />
                 </View>
                 <Text style={s.ostatVal}>{st.val}</Text>
@@ -2062,14 +2386,16 @@ _Dikirim via Kasir WarungKu_`;
                     color: labaBersih >= 0 ? Colors.success : Colors.danger,
                     fontSize: 14,
                   },
-                ]}>
+                ]}
+              >
                 {formatRupiah(labaBersih)}
               </Text>
             </View>
           </View>
           <TouchableOpacity
             style={s.labaDetailBtn}
-            onPress={() => navigation.navigate("Pengeluaran")}>
+            onPress={() => navigation.navigate('Pengeluaran')}
+          >
             <Ionicons name="wallet-outline" size={13} color={Colors.primary} />
             <Text style={s.labaDetailTxt}>Lihat & tambah pengeluaran →</Text>
           </TouchableOpacity>
@@ -2078,29 +2404,29 @@ _Dikirim via Kasir WarungKu_`;
         <View style={s.quickStats}>
           {[
             {
-              icon: "trending-up-outline",
+              icon: 'trending-up-outline',
               color: Colors.success,
               val:
                 ring.trx > 0
                   ? formatRupiah(Math.round(ring.omset / ring.trx))
-                  : "Rp 0",
-              lbl: "Rata-rata/trx",
+                  : 'Rp 0',
+              lbl: 'Rata-rata/trx',
             },
             {
-              icon: "star-outline",
+              icon: 'star-outline',
               color: Colors.warning,
               val:
-                ring.trx > 0 ? Math.round(ring.qty / ring.trx).toString() : "0",
-              lbl: "Item/transaksi",
+                ring.trx > 0 ? Math.round(ring.qty / ring.trx).toString() : '0',
+              lbl: 'Item/transaksi',
             },
             {
-              icon: "analytics-outline",
+              icon: 'analytics-outline',
               color: Colors.info,
               val:
                 ring.omset > 0
-                  ? Math.round((ring.diskon / ring.omset) * 100) + "%"
-                  : "0%",
-              lbl: "% Diskon",
+                  ? Math.round((ring.diskon / ring.omset) * 100) + '%'
+                  : '0%',
+              lbl: '% Diskon',
             },
           ].map((q, i) => (
             <View key={i} style={s.qstatCard}>
@@ -2118,7 +2444,8 @@ _Dikirim via Kasir WarungKu_`;
               key={item.key}
               style={[s.menuRow, i < MENU.length - 1 && s.menuBorder]}
               onPress={item.onPress}
-              activeOpacity={0.7}>
+              activeOpacity={0.7}
+            >
               <View style={[s.menuIcon, { backgroundColor: item.bg }]}>
                 <Ionicons
                   name={item.icon as any}
@@ -2158,38 +2485,43 @@ _Dikirim via Kasir WarungKu_`;
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
             padding: 24,
-          }}>
+          }}
+        >
           <View
-            style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20 }}>
+            style={{ backgroundColor: '#fff', borderRadius: 20, padding: 20 }}
+          >
             {/* Header */}
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: 10,
                 marginBottom: 20,
-              }}>
+              }}
+            >
               <View
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  backgroundColor: "#F0FDF4",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
+                  backgroundColor: '#F0FDF4',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="download-outline" size={20} color="#16A34A" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "800",
+                    fontWeight: '800',
                     color: Colors.text,
-                  }}>
+                  }}
+                >
                   Export Laporan Excel
                 </Text>
                 <Text
@@ -2197,7 +2529,8 @@ _Dikirim via Kasir WarungKu_`;
                     fontSize: 12,
                     color: Colors.textMuted,
                     marginTop: 2,
-                  }}>
+                  }}
+                >
                   Pilih periode yang ingin di-export
                 </Text>
               </View>
@@ -2210,24 +2543,24 @@ _Dikirim via Kasir WarungKu_`;
             {(
               [
                 {
-                  key: "harian",
-                  label: "📅 Laporan Harian",
+                  key: 'harian',
+                  label: '📅 Laporan Harian',
                   sub: `Data hari ini · ${formatTanggal(today)}`,
                   color: Colors.primary,
                 },
                 {
-                  key: "bulanan",
-                  label: "📆 Laporan Bulanan",
-                  sub: "Data seluruh bulan terpilih",
-                  color: "#7C3AED",
+                  key: 'bulanan',
+                  label: '📆 Laporan Bulanan',
+                  sub: 'Data seluruh bulan terpilih',
+                  color: '#7C3AED',
                 },
               ] as const
             ).map((opt) => (
               <TouchableOpacity
                 key={opt.key}
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   gap: 12,
                   padding: 14,
                   borderRadius: 14,
@@ -2237,19 +2570,21 @@ _Dikirim via Kasir WarungKu_`;
                     exportPeriode === opt.key ? opt.color : Colors.border,
                   backgroundColor:
                     exportPeriode === opt.key
-                      ? opt.key === "harian"
+                      ? opt.key === 'harian'
                         ? Colors.primaryLight
-                        : "#F5F3FF"
-                      : "#fff",
+                        : '#F5F3FF'
+                      : '#fff',
                 }}
-                onPress={() => setExportPeriode(opt.key)}>
+                onPress={() => setExportPeriode(opt.key)}
+              >
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
                       fontSize: 14,
-                      fontWeight: "700",
+                      fontWeight: '700',
                       color: Colors.text,
-                    }}>
+                    }}
+                  >
                     {opt.label}
                   </Text>
                   <Text
@@ -2257,7 +2592,8 @@ _Dikirim via Kasir WarungKu_`;
                       fontSize: 12,
                       color: Colors.textMuted,
                       marginTop: 2,
-                    }}>
+                    }}
+                  >
                     {opt.sub}
                   </Text>
                 </View>
@@ -2270,10 +2606,11 @@ _Dikirim via Kasir WarungKu_`;
                     borderColor:
                       exportPeriode === opt.key ? opt.color : Colors.border,
                     backgroundColor:
-                      exportPeriode === opt.key ? opt.color : "#fff",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
+                      exportPeriode === opt.key ? opt.color : '#fff',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   {exportPeriode === opt.key && (
                     <Ionicons name="checkmark" size={13} color="#fff" />
                   )}
@@ -2282,19 +2619,20 @@ _Dikirim via Kasir WarungKu_`;
             ))}
 
             {/* Pilih bulan jika bulanan */}
-            {exportPeriode === "bulanan" && (
+            {exportPeriode === 'bulanan' && (
               <View style={{ marginBottom: 10 }}>
                 <Text
                   style={{
                     fontSize: 11,
-                    fontWeight: "700",
+                    fontWeight: '700',
                     color: Colors.textMuted,
                     marginBottom: 8,
-                  }}>
+                  }}
+                >
                   PILIH BULAN
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     {(() => {
                       const opts: { val: string; label: string }[] = [];
                       const now = new Date();
@@ -2304,20 +2642,20 @@ _Dikirim via Kasir WarungKu_`;
                           now.getMonth() - i,
                           1,
                         );
-                        const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                        const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         const BULAN = [
-                          "Jan",
-                          "Feb",
-                          "Mar",
-                          "Apr",
-                          "Mei",
-                          "Jun",
-                          "Jul",
-                          "Ags",
-                          "Sep",
-                          "Okt",
-                          "Nov",
-                          "Des",
+                          'Jan',
+                          'Feb',
+                          'Mar',
+                          'Apr',
+                          'Mei',
+                          'Jun',
+                          'Jul',
+                          'Ags',
+                          'Sep',
+                          'Okt',
+                          'Nov',
+                          'Des',
                         ];
                         opts.push({
                           val,
@@ -2333,24 +2671,26 @@ _Dikirim via Kasir WarungKu_`;
                             borderRadius: 20,
                             backgroundColor:
                               exportBulan === opt.val
-                                ? "#7C3AED"
+                                ? '#7C3AED'
                                 : Colors.background,
                             borderWidth: 1,
                             borderColor:
                               exportBulan === opt.val
-                                ? "#7C3AED"
+                                ? '#7C3AED'
                                 : Colors.border,
                           }}
-                          onPress={() => setExportBulan(opt.val)}>
+                          onPress={() => setExportBulan(opt.val)}
+                        >
                           <Text
                             style={{
                               fontSize: 12,
-                              fontWeight: "700",
+                              fontWeight: '700',
                               color:
                                 exportBulan === opt.val
-                                  ? "#fff"
+                                  ? '#fff'
                                   : Colors.textMuted,
-                            }}>
+                            }}
+                          >
                             {opt.label}
                           </Text>
                         </TouchableOpacity>
@@ -2365,24 +2705,25 @@ _Dikirim via Kasir WarungKu_`;
             <TouchableOpacity
               style={{
                 backgroundColor:
-                  exportPeriode === "bulanan" ? "#7C3AED" : Colors.primary,
+                  exportPeriode === 'bulanan' ? '#7C3AED' : Colors.primary,
                 borderRadius: 14,
                 padding: 15,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
                 gap: 8,
                 marginTop: 4,
               }}
               onPress={() =>
                 exportLaporanExcel(
                   exportPeriode,
-                  exportPeriode === "bulanan" ? exportBulan : undefined,
+                  exportPeriode === 'bulanan' ? exportBulan : undefined,
                 )
-              }>
+              }
+            >
               <Ionicons name="download-outline" size={18} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                Export {exportPeriode === "bulanan" ? "Bulanan" : "Harian"}
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
+                Export {exportPeriode === 'bulanan' ? 'Bulanan' : 'Harian'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -2395,7 +2736,7 @@ _Dikirim via Kasir WarungKu_`;
 // ── Styles ────────────────────────────────────────────────────────────────────
 const pj = StyleSheet.create({
   tabRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingHorizontal: 16,
     paddingBottom: 12,
     gap: 8,
@@ -2403,36 +2744,36 @@ const pj = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  tabActive: { backgroundColor: "#fff" },
-  tabTxt: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.6)" },
+  tabActive: { backgroundColor: '#fff' },
+  tabTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
   tabTxtActive: { color: Colors.primary },
   filterScroll: { flexGrow: 0, backgroundColor: Colors.primary },
   filterContent: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 8,
-    alignItems: "center",
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   filterTxt: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.85)",
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.85)',
   },
   summaryStrip: {
     backgroundColor: Colors.primaryLight,
@@ -2441,14 +2782,14 @@ const pj = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
-  summaryTxt: { fontSize: 12, fontWeight: "700", color: Colors.primary },
+  summaryTxt: { fontSize: 12, fontWeight: '700', color: Colors.primary },
   metodeGrid: { gap: 10 },
   // ── Card metode yang lebih informatif ──
   metodeCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -2459,21 +2800,21 @@ const pj = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  metodeLabel: { fontSize: 13, fontWeight: "700", color: Colors.text },
-  metodeTotal: { fontSize: 16, fontWeight: "900" },
+  metodeLabel: { fontSize: 13, fontWeight: '700', color: Colors.text },
+  metodeTotal: { fontSize: 16, fontWeight: '900' },
   metodeBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
-  metodeBadgeTxt: { fontSize: 11, fontWeight: "800" },
+  metodeBadgeTxt: { fontSize: 11, fontWeight: '800' },
 });
 
 const m = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
@@ -2482,42 +2823,42 @@ const m = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: "#fff", fontSize: 17, fontWeight: "800" },
-  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
-  emptyTxt: { fontSize: 15, fontWeight: "700", color: Colors.textMuted },
-  emptySub: { fontSize: 13, color: Colors.textLight, textAlign: "center" },
+  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
+  emptyTxt: { fontSize: 15, fontWeight: '700', color: Colors.textMuted },
+  emptySub: { fontSize: 13, color: Colors.textLight, textAlign: 'center' },
   trxCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
   trxHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  trxNo: { fontSize: 12, fontWeight: "700", color: Colors.text },
+  trxNo: { fontSize: 12, fontWeight: '700', color: Colors.text },
   trxTime: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
   metodePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  metodeTxt: { fontSize: 10, fontWeight: "800" },
-  trxFooter: { flexDirection: "row", alignItems: "center", gap: 8 },
+  metodeTxt: { fontSize: 10, fontWeight: '800' },
+  trxFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   trxItems: { fontSize: 12, color: Colors.textLight },
   trxDiskon: { fontSize: 12, color: Colors.danger },
   trxTotal: {
-    marginLeft: "auto" as any,
+    marginLeft: 'auto' as any,
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: '800',
     color: Colors.primary,
   },
   periodeRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -2527,19 +2868,19 @@ const m = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  periodeActive: { backgroundColor: "#fff" },
+  periodeActive: { backgroundColor: '#fff' },
   periodeTxt: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.7)",
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
   },
   periodeTxtActive: { color: Colors.primary },
   terlarisCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -2547,14 +2888,14 @@ const m = StyleSheet.create({
   },
   terlarisLeft: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   terlarisRank: { fontSize: 22, width: 32 },
   terlarisNama: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.text,
     marginBottom: 5,
   },
@@ -2566,11 +2907,11 @@ const m = StyleSheet.create({
   },
   barFill: { height: 4, backgroundColor: Colors.primary, borderRadius: 2 },
   terlarisQty: { fontSize: 10, color: Colors.textLight },
-  terlarisOmset: { fontSize: 13, fontWeight: "800", color: Colors.primary },
+  terlarisOmset: { fontSize: 13, fontWeight: '800', color: Colors.primary },
   stokCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -2585,53 +2926,53 @@ const m = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  stokNama: { fontSize: 13, fontWeight: "700", color: Colors.text },
+  stokNama: { fontSize: 13, fontWeight: '700', color: Colors.text },
   stokKat: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
-  stokSisa: { fontSize: 13, fontWeight: "800" },
+  stokSisa: { fontSize: 13, fontWeight: '800' },
   stokMin: { fontSize: 10, color: Colors.textLight, marginTop: 2 },
   sectionLabel: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textLight,
     letterSpacing: 0.8,
     marginBottom: 10,
   },
-  statGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statCard: {
     flex: 1,
-    minWidth: "45%",
-    backgroundColor: "#fff",
+    minWidth: '45%',
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
   statLbl: { fontSize: 11, color: Colors.textLight, marginBottom: 4 },
-  statVal: { fontSize: 18, fontWeight: "800" },
+  statVal: { fontSize: 18, fontWeight: '800' },
   chartCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
   barChart: {
-    flexDirection: "row",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     height: 160,
     gap: 4,
   },
   barCol: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     gap: 4,
-    height: "100%",
-    justifyContent: "flex-end",
+    height: '100%',
+    justifyContent: 'flex-end',
   },
-  bar: { width: "100%", borderRadius: 4 },
+  bar: { width: '100%', borderRadius: 4 },
   barLbl: { fontSize: 8, color: Colors.textLight },
   barDay: { fontSize: 9, color: Colors.textLight },
 });
@@ -2641,22 +2982,22 @@ const s = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.background },
   content: { paddingBottom: 32 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 20,
   },
-  headerTitle: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  headerSub: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 },
+  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  headerSub: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 },
   shareHeaderBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   omsetCard: {
     backgroundColor: Colors.primaryDark,
@@ -2664,27 +3005,27 @@ const s = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  omsetDate: { color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 4 },
+  omsetDate: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginBottom: 4 },
   omsetLabel: {
-    color: "rgba(255,255,255,0.55)",
+    color: 'rgba(255,255,255,0.55)',
     fontSize: 12,
     marginBottom: 6,
   },
   omsetVal: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 32,
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: -1,
     marginBottom: 16,
   },
-  omsetStats: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  omsetStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ostat: {
     flex: 1,
-    minWidth: "45%",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    minWidth: '45%',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 10,
     gap: 4,
@@ -2693,13 +3034,13 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  ostatVal: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  ostatLabel: { color: "rgba(255,255,255,0.55)", fontSize: 10 },
+  ostatVal: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  ostatLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 10 },
   labaCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -2709,61 +3050,61 @@ const s = StyleSheet.create({
   },
   labaTitle: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textMuted,
     marginBottom: 14,
   },
-  labaRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  labaItem: { flex: 1, alignItems: "center", gap: 5 },
+  labaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  labaItem: { flex: 1, alignItems: 'center', gap: 5 },
   labaSep: { width: 1, height: 44, backgroundColor: Colors.borderLight },
   labaLabel: { fontSize: 10, color: Colors.textMuted },
-  labaVal: { fontSize: 13, fontWeight: "800", color: Colors.text },
+  labaVal: { fontSize: 13, fontWeight: '800', color: Colors.text },
   labaDetailBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
     borderTopWidth: 0.5,
     borderTopColor: Colors.borderLight,
     paddingTop: 10,
   },
-  labaDetailTxt: { fontSize: 12, color: Colors.primary, fontWeight: "600" },
+  labaDetailTxt: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
   quickStats: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
     marginBottom: 16,
   },
   qstatCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 12,
-    alignItems: "center",
+    alignItems: 'center',
     gap: 4,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  qstatVal: { fontSize: 14, fontWeight: "800", color: Colors.text },
-  qstatLbl: { fontSize: 9, color: Colors.textLight, textAlign: "center" },
+  qstatVal: { fontSize: 14, fontWeight: '800', color: Colors.text },
+  qstatLbl: { fontSize: 9, color: Colors.textLight, textAlign: 'center' },
   sectionLbl: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textLight,
     letterSpacing: 0.8,
     paddingHorizontal: 16,
     marginBottom: 10,
   },
   menuCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginHorizontal: 16,
     borderRadius: 20,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
@@ -2773,10 +3114,10 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuInfo: { flex: 1 },
-  menuLabel: { fontSize: 14, fontWeight: "700", color: Colors.text },
+  menuLabel: { fontSize: 14, fontWeight: '700', color: Colors.text },
   menuSub: { fontSize: 12, color: Colors.textLight, marginTop: 1 },
 });

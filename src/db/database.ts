@@ -160,6 +160,14 @@ export async function initDB(): Promise<void> {
     'ALTER TABLE produk ADD COLUMN min_grosir    INTEGER DEFAULT 0',
     'ALTER TABLE produk ADD COLUMN aktif_grosir  INTEGER DEFAULT 0',
 
+    // GROSIR BERTINGKAT - Jadicuan Developer
+    `CREATE TABLE IF NOT EXISTS produk_grosir (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        produk_id INTEGER NOT NULL,
+        min_qty   INTEGER NOT NULL DEFAULT 1,
+        harga     INTEGER NOT NULL DEFAULT 0
+      )`,
+
     'ALTER TABLE transaksi_item ADD COLUMN harga_modal INTEGER DEFAULT 0',
 
     // KONSINYASI
