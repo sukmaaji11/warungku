@@ -21,7 +21,7 @@ import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../store/authStore';
 
 // ── Konstanta penjual ──────────────────────────────────────────────────────
-const PENJUAL_WA = '6285168195005'; //6285113223419
+const PENJUAL_WA = '6285113223419'; //6285113223419
 const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const ACT_POS = [2, 6, 10, 14, 18]; // posisi digit kode aktivasi
 
