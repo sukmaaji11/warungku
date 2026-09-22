@@ -36,8 +36,13 @@ import * as Sharing from "expo-sharing";
 import * as FSLegacy from "expo-file-system/legacy";
 import { File, Directory } from "expo-file-system/next";
 import { formatRupiah } from "../../utils/format";
+import {
+  getSatuanProduk,
+  tambahSatuan,
+  hapusSatuan,
+} from "../../db/satuanRepo";
 
-const SATUAN = ["pcs", "kg", "liter", "bungkus", "botol", "kotak", "sachet"];
+//const SATUAN = ["pcs", "kg", "liter", "bungkus", "botol", "kotak", "sachet"];
 const DEFAULT = {
   nama: "",
   harga: "",
@@ -233,12 +238,21 @@ function FormProduk({ initial, onSave, onDelete, navigation }: any) {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [showTambahKat, setShowTambahKat] = useState(false);
   const [namaKatBaru, setNamaKatBaru] = useState("");
-
-  const upd = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+  const [satuanList, setSatuanList] = useState<string[]>([]);
+  const [showSatuan, setShowSatuan] = useState(false);
+  const [namaSatuanBaru, setNamaSatuanBaru] = useState("");
 
   useEffect(() => {
     setKats(getAllKategori().filter((k: Kategori) => k.id > 1));
+    loadSatuan();
   }, []);
+
+  const upd = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+
+  const loadSatuan = () => {
+  const data = getSatuanProduk();
+    setSatuanList(data.map((item) => item.nama));
+  };
 
   const margin =
     form.harga && form.harga_modal
@@ -494,22 +508,32 @@ function FormProduk({ initial, onSave, onDelete, navigation }: any) {
               style={{ flex: 1 }}>
               <View
                 style={{ flexDirection: "row", gap: 6, paddingVertical: 6 }}>
-                {SATUAN.map((st) => (
-                  <TouchableOpacity
-                    key={st}
-                    style={[s.chip, form.satuan === st && s.chipActive]}
-                    onPress={() => upd("satuan", st)}>
-                    <Text
-                      style={[
-                        s.chipTxt,
-                        form.satuan === st && s.chipTxtActive,
-                      ]}>
-                      {st}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+                {satuanList.map((st) => (
+                                  <TouchableOpacity
+                                    key={st}
+                                    style={[s.chip, form.satuan === st && s.chipActive]}
+                                    onPress={() => upd("satuan", st)}>
+                                    <Text
+                                      style={[
+                                        s.chipTxt,
+                                        form.satuan === st && s.chipTxtActive,
+                                      ]}>
+                                      {st}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </ScrollView>
+                <TouchableOpacity
+                  style={s.manageSatuanBtn}
+                  onPress={() => setShowSatuan(true)}
+                >
+                  <Ionicons
+                    name="settings-outline"
+                    size={17}
+                    color={Colors.primary}
+                  />
+                </TouchableOpacity>
           </View>
         </View>
 
@@ -736,6 +760,177 @@ function FormProduk({ initial, onSave, onDelete, navigation }: any) {
           </View>
         </Modal>
 
+<Modal visible={showSatuan} transparent animationType="fade">
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      padding: 24,
+    }}
+  >
+    <View
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 20,
+        maxHeight: "80%",
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "800",
+            color: Colors.text,
+          }}
+        >
+          Kelola Satuan
+        </Text>
+
+        <TouchableOpacity onPress={() => setShowSatuan(false)}>
+          <Ionicons
+            name="close-circle"
+            size={24}
+            color={Colors.textMuted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Tambah satuan */}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          marginBottom: 16,
+        }}
+      >
+        <TextInput
+          style={[
+            s.input,
+            {
+              borderWidth: 1,
+              borderColor: Colors.border,
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            },
+          ]}
+          placeholder="Nama satuan..."
+          placeholderTextColor={Colors.textMuted}
+          value={namaSatuanBaru}
+          onChangeText={setNamaSatuanBaru}
+        />
+
+        <TouchableOpacity
+          style={{
+            backgroundColor: Colors.primary,
+            borderRadius: 10,
+            paddingHorizontal: 14,
+            justifyContent: "center",
+          }}
+          onPress={() => {
+            const nama = namaSatuanBaru.trim();
+
+            if (!nama) {
+              Alert.alert("Perhatian", "Nama satuan wajib diisi.");
+              return;
+            }
+
+            try {
+              tambahSatuan(nama);
+
+              setNamaSatuanBaru("");
+              loadSatuan();
+
+              Alert.alert(
+                "Berhasil",
+                `Satuan "${nama}" berhasil ditambahkan.`,
+              );
+            } catch {
+              Alert.alert(
+                "Gagal",
+                `Satuan "${nama}" sudah ada atau tidak valid.`,
+              );
+            }
+          }}
+        >
+          <Text
+            style={{
+              color: "#fff",
+              fontWeight: "700",
+            }}
+          >
+            Tambah
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Daftar satuan */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {getSatuanProduk().map((item) => (
+          <View
+            key={item.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 10,
+              borderBottomWidth: 1,
+              borderBottomColor: Colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                color: Colors.text,
+                fontWeight: "600",
+              }}
+            >
+              {item.nama}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  "Hapus Satuan",
+                  `Hapus satuan "${item.nama}" dari daftar?`,
+                  [
+                    {
+                      text: "Batal",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Hapus",
+                      style: "destructive",
+                      onPress: () => {
+                        hapusSatuan(item.id);
+                        loadSatuan();
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={Colors.danger}
+              />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
         {/* ── Hapus (edit mode) ── */}
         {onDelete && (
           <TouchableOpacity style={s.deleteBtn} onPress={onDelete}>
@@ -1555,6 +1750,18 @@ const s = StyleSheet.create({
     borderRadius: 10,
   },
   scanBtnTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
+   
+  manageSatuanBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
+  },
 });
 
 const sc = StyleSheet.create({
@@ -1624,4 +1831,5 @@ const sc = StyleSheet.create({
   },
   hint: { color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "500" },
   closeBtn: { marginTop: 8 },
+ 
 });

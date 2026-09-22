@@ -173,25 +173,55 @@ export async function initDB(): Promise<void> {
     // KONSINYASI
     'ALTER TABLE produk ADD COLUMN konsinyor_id INTEGER DEFAULT NULL',
     'ALTER TABLE produk ADD COLUMN is_konsinyasi INTEGER DEFAULT 0',
+
+    // SATUAN PRODUK CUSTOM
+    `CREATE TABLE IF NOT EXISTS satuan_produk (
+        id     INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama   TEXT NOT NULL UNIQUE,
+        aktif  INTEGER NOT NULL DEFAULT 1
+      )`,
   ];
 
   migrations.forEach((sql) => {
-    try {
-      db.execSync(sql);
-    } catch {
-      /* kolom sudah ada */
-    }
-  });
-
   try {
-    db.execSync(`
+    db.execSync(sql);
+  } catch {
+    /* kolom sudah ada */
+  }
+});
+
+// SEED SATUAN PRODUK DEFAULT
+const satuanDefault = [
+  "pcs",
+  "kg",
+  "liter",
+  "bungkus",
+  "botol",
+  "kotak",
+  "sachet",
+];
+
+for (const nama of satuanDefault) {
+  try {
+    db.runSync(
+      `INSERT OR IGNORE INTO satuan_produk (nama, aktif)
+       VALUES (?, 1)`,
+      [nama]
+    );
+  } catch (e) {
+    console.warn("[DB] seed satuan error:", e);
+  }
+}
+
+try {
+  db.execSync(`
     UPDATE transaksi
     SET diskon_nominal = diskon
     WHERE diskon > 0 AND diskon_nominal = 0
   `);
-  } catch (e) {
-    console.warn('[DB] migrasi diskon_nominal error:', e);
-  }
+} catch (e) {
+  console.warn('[DB] migrasi diskon_nominal error:', e);
+}
 
   // ── Migrasi owner dari PIN lama ───────────────────────────────────────────
   try {
