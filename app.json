@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kasir WarungKu",
     "slug": "warungkecil",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "default",
     "icon": "./assets/adaptive-icon.png",
     "userInterfaceStyle": "light",
@@ -31,6 +31,7 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "versionCode": 2,
       "package": "com.campdevapp.kasirwarungku"
     },
     "web": {
