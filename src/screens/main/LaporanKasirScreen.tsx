@@ -299,8 +299,38 @@ export function LaporanKasirScreen({ navigation }: any) {
       <Modal visible={showCustom} transparent animationType="fade">
         <View style={s.customOverlay}>
           <View style={s.customModal}>
-            <Text style={s.customTitle}>Pilih Rentang Tanggal</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 20,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#111827',
+                }}
+              >
+                Pilih Periode
+              </Text>
 
+              <TouchableOpacity
+                onPress={() => setShowCustom(false)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
             <Text style={s.customLabel}>Dari</Text>
 
             <TouchableOpacity

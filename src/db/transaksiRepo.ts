@@ -168,11 +168,8 @@ export function getTerlaris(
 }
 
 // Add Function Get Terlaris By Date Range - Jadicuan Developer
-export function getTerlarisByRange(
-  dari: string,
-  sampai: string,
-  limit = 20,
-): any[] {
+// Get Terlaris By Date Range - Jadicuan Developer
+export function getTerlarisByRange(dari: string, sampai: string): any[] {
   try {
     return getDB().getAllSync(
       `SELECT
@@ -183,9 +180,8 @@ export function getTerlarisByRange(
        JOIN transaksi t ON ti.transaksi_id = t.id
        WHERE date(t.waktu) BETWEEN ? AND ?
        GROUP BY ti.nama_produk
-       ORDER BY qty DESC
-       LIMIT ?`,
-      [dari, sampai, limit],
+       ORDER BY qty DESC`,
+      [dari, sampai],
     ) as any[];
   } catch {
     return [];

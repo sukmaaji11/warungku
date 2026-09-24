@@ -274,6 +274,7 @@ export default function GrosirScreen({ navigation }: any) {
         renderItem={({ item: p }) => {
           const isEditing = editId === p.id;
           const hemat = p.harga_grosir > 0 ? p.harga - p.harga_grosir : 0;
+
           return (
             <View style={[s.card, p.aktif_grosir === 1 && s.cardActive]}>
               {/* Row atas: nama + toggle */}
@@ -297,44 +298,6 @@ export default function GrosirScreen({ navigation }: any) {
                 />
               </View>
 
-              {/* Status aktif */}
-              {p.aktif_grosir === 1 && p.harga_grosir > 0 && !isEditing && (
-                <View style={s.statusRow}>
-                  <View style={s.grosirBadge}>
-                    <Ionicons name="pricetag" size={11} color="#1565C0" />
-                    <Text style={s.grosirBadgeTxt}>
-                      {formatRupiah(p.harga_grosir)} / {p.satuan}
-                    </Text>
-                  </View>
-                  <View style={s.minBadge}>
-                    <Ionicons name="layers-outline" size={11} color="#7C3AED" />
-                    <Text style={s.minBadgeTxt}>
-                      Min. {p.min_grosir} {p.satuan}
-                    </Text>
-                  </View>
-                  {hemat > 0 && (
-                    <View style={s.hematBadge}>
-                      <Text style={s.hematTxt}>
-                        Hemat {formatRupiah(hemat)}
-                      </Text>
-                    </View>
-                  )}
-                  <TouchableOpacity
-                    style={s.editBtn}
-                    onPress={() => {
-                      setEditId(p.id);
-                      setEditHarga(p.harga_grosir.toString());
-                      setEditMin(p.min_grosir.toString());
-                    }}
-                  >
-                    <Ionicons
-                      name="pencil-outline"
-                      size={13}
-                      color={Colors.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
               {/* Grosir bertingkat - Jadicuan Developer */}
               {tierProdukId === p.id && !isEditing && (
                 <View style={s.tierForm}>
@@ -429,10 +392,54 @@ export default function GrosirScreen({ navigation }: any) {
                     </TouchableOpacity>
                   </View>
 
+                  {/* Status aktif */}
+                  {p.aktif_grosir === 1 && p.harga_grosir > 0 && !isEditing && (
+                    <View style={s.statusRow}>
+                      <View style={s.grosirBadge}>
+                        <Ionicons name="pricetag" size={11} color="#1565C0" />
+                        <Text style={s.grosirBadgeTxt}>
+                          {formatRupiah(p.harga_grosir)} / {p.satuan}
+                        </Text>
+                      </View>
+                      <View style={s.minBadge}>
+                        <Ionicons
+                          name="layers-outline"
+                          size={11}
+                          color="#7C3AED"
+                        />
+                        <Text style={s.minBadgeTxt}>
+                          Min. {p.min_grosir} {p.satuan}
+                        </Text>
+                      </View>
+                      {hemat > 0 && (
+                        <View style={s.hematBadge}>
+                          <Text style={s.hematTxt}>
+                            Hemat {formatRupiah(hemat)}
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={s.editBtn}
+                        onPress={() => {
+                          setEditId(p.id);
+                          setEditHarga(p.harga_grosir.toString());
+                          setEditMin(p.min_grosir.toString());
+                        }}
+                      >
+                        <Ionicons
+                          name="pencil-outline"
+                          size={13}
+                          color={Colors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   {p.tiers && p.tiers.length > 0 ? (
                     p.tiers.map((tier) => {
                       const isEditingTier = editTierId === tier.id;
-
+                      const tingkatHemat =
+                        tier.harga > 0 ? p.harga - tier.harga : 0;
                       if (isEditingTier) {
                         return (
                           <View key={tier.id} style={s.tierEditRow}>
@@ -503,60 +510,77 @@ export default function GrosirScreen({ navigation }: any) {
 
                       return (
                         <View key={tier.id} style={s.tierRow}>
-                          <Text style={s.tierMin}>
-                            {tier.min_qty}+ {p.satuan}
-                          </Text>
-
-                          <Text style={s.tierArrow}>→</Text>
-
                           <Text style={s.tierHarga}>
-                            {formatRupiah(tier.harga)}
+                            <Ionicons
+                              name="pricetag"
+                              size={11}
+                              color="#1565C0"
+                            />
+                            <Text> </Text>
+                            {formatRupiah(tier.harga)} / {p.satuan}
                           </Text>
-
-                          <TouchableOpacity
-                            style={s.tierEditBtn}
-                            onPress={() => {
-                              setEditTierId(tier.id);
-                              setEditTierMinQty(tier.min_qty.toString());
-                              setEditTierHarga(tier.harga.toString());
-                            }}
-                          >
+                          <Text style={s.tierMin}>
                             <Ionicons
-                              name="pencil-outline"
-                              size={13}
-                              color={Colors.primary}
+                              name="layers-outline"
+                              size={11}
+                              color="#7C3AED"
                             />
-                          </TouchableOpacity>
+                            <Text> </Text>
+                            Min. {tier.min_qty} {p.satuan}
+                          </Text>
+                          {tingkatHemat > 0 && (
+                            <View style={s.hematBadge}>
+                              <Text style={s.hematTxt}>
+                                Hemat {formatRupiah(tingkatHemat)}
+                              </Text>
+                            </View>
+                          )}
+                          <View style={s.tierActions}>
+                            <TouchableOpacity
+                              style={s.tierEditBtn}
+                              onPress={() => {
+                                setEditTierId(tier.id);
+                                setEditTierMinQty(tier.min_qty.toString());
+                                setEditTierHarga(tier.harga.toString());
+                              }}
+                            >
+                              <Ionicons
+                                name="pencil-outline"
+                                size={13}
+                                color={Colors.primary}
+                              />
+                            </TouchableOpacity>
 
-                          <TouchableOpacity
-                            style={s.tierDeleteBtn}
-                            onPress={() => {
-                              Alert.alert(
-                                'Hapus Tingkat Grosir',
-                                `Hapus harga grosir ${tier.min_qty}+ ${p.satuan}?`,
-                                [
-                                  {
-                                    text: 'Batal',
-                                    style: 'cancel',
-                                  },
-                                  {
-                                    text: 'Hapus',
-                                    style: 'destructive',
-                                    onPress: () => {
-                                      hapusGrosirTier(tier.id);
-                                      load();
+                            <TouchableOpacity
+                              style={s.tierDeleteBtn}
+                              onPress={() => {
+                                Alert.alert(
+                                  'Hapus Tingkat Grosir',
+                                  `Hapus harga grosir ${tier.min_qty}+ ${p.satuan}?`,
+                                  [
+                                    {
+                                      text: 'Batal',
+                                      style: 'cancel',
                                     },
-                                  },
-                                ],
-                              );
-                            }}
-                          >
-                            <Ionicons
-                              name="trash-outline"
-                              size={13}
-                              color="#DC2626"
-                            />
-                          </TouchableOpacity>
+                                    {
+                                      text: 'Hapus',
+                                      style: 'destructive',
+                                      onPress: () => {
+                                        hapusGrosirTier(tier.id);
+                                        load();
+                                      },
+                                    },
+                                  ],
+                                );
+                              }}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={13}
+                                color="#DC2626"
+                              />
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       );
                     })
@@ -730,11 +754,15 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,
-    padding: 14,
-    borderWidth: 0.5,
+    padding: 12,
+    borderWidth: 1,
     borderColor: Colors.border,
   },
-  cardActive: { borderColor: Colors.primary, borderWidth: 1 },
+
+  cardActive: {
+    borderColor: Colors.primary,
+    borderWidth: 1,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -746,8 +774,10 @@ const s = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 2,
     flexWrap: 'wrap',
+    marginTop: 2,
+    marginBottom: 4,
   },
   grosirBadge: {
     flexDirection: 'row',
@@ -849,37 +879,37 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-
   tierTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
   },
-
   tierTitle: {
     fontSize: 11,
     fontWeight: '800',
     color: Colors.primary,
   },
-
   tierCount: {
     fontSize: 10,
     color: Colors.textMuted,
   },
-
   tierRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
+    paddingVertical: 7,
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
   },
-
   tierMin: {
-    width: 80,
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    textAlign: 'center',
+    gap: 4,
   },
 
   tierArrow: {
@@ -887,28 +917,35 @@ const s = StyleSheet.create({
     textAlign: 'center',
     color: Colors.textMuted,
   },
-
   tierHarga: {
-    width: 100,
-    textAlign: 'right',
-    fontSize: 12,
+    minWidth: 90,
+    fontSize: 11,
     fontWeight: '700',
-    color: Colors.primary,
+    color: '#1565C0',
+    backgroundColor: '#E3F2FD',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    textAlign: 'center',
+  },
+  tierActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 6,
   },
   addTierBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     marginTop: 10,
-    paddingVertical: 7,
+    paddingVertical: 5,
   },
-
   addTierTxt: {
     fontSize: 12,
     fontWeight: '700',
     color: Colors.primary,
   },
-
   tierForm: {
     marginTop: 8,
     padding: 10,
@@ -918,7 +955,6 @@ const s = StyleSheet.create({
     borderColor: Colors.primary + '40',
     gap: 10,
   },
-
   tierFormTitle: {
     fontSize: 12,
     fontWeight: '800',
@@ -933,31 +969,27 @@ const s = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: Colors.primaryLight,
   },
-
   addTierMiniTxt: {
     fontSize: 10,
     fontWeight: '700',
     color: Colors.primary,
   },
   tierDeleteBtn: {
-    width: 28,
-    height: 28,
+    width: 15,
+    height: 15,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
     marginLeft: 8,
   },
   tierEditBtn: {
-    width: 28,
-    height: 28,
+    width: 15,
+    height: 15,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primaryLight,
     marginLeft: 6,
   },
-
   tierEditRow: {
     paddingVertical: 8,
     gap: 8,

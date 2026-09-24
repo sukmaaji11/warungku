@@ -326,3 +326,20 @@ export function getHargaGrosirBertingkat(
     return null;
   }
 }
+
+// ── TOTAL NILAI AKTIVA ──────────────────────────────────────────────────────
+// Mengambil total nilai aset berdasarkan harga modal dan stok.
+// Jadicuan Developer,
+export function getTotalAssetValue(): number {
+  try {
+    const row = getDB().getFirstSync(
+      `SELECT COALESCE(SUM(harga_modal * stok), 0) AS total
+       FROM produk
+       WHERE aktif = 1`,
+    ) as { total: number } | null;
+
+    return row?.total ?? 0;
+  } catch {
+    return 0;
+  }
+}

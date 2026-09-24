@@ -265,7 +265,7 @@ function TerlarisModal({ visible, onClose }: any) {
         sampai = customSampai || today;
       }
 
-      setList(getTerlarisByRange(dari, sampai, 20));
+      setList(getTerlarisByRange(dari, sampai));
     }, [visible, range, customDari, customSampai]),
   );
 
@@ -379,16 +379,38 @@ function TerlarisModal({ visible, onClose }: any) {
               padding: 20,
             }}
           >
-            <Text
+            <View
               style={{
-                fontSize: 18,
-                fontWeight: '700',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 marginBottom: 20,
-                color: '#111827',
               }}
             >
-              Pilih Periode
-            </Text>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: '#111827',
+                }}
+              >
+                Pilih Periode
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => setShowCustom(false)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: '#F3F4F6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
 
             {/* DARI */}
             <Text
@@ -1609,11 +1631,38 @@ function PenjualanModal({
                 padding: 20,
               }}
             >
-              <Text
-                style={{ fontSize: 16, fontWeight: '800', marginBottom: 16 }}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 20,
+                }}
               >
-                Pilih Rentang Tanggal
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: '#111827',
+                  }}
+                >
+                  Pilih Periode
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setShowCustom(false)}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: '#F3F4F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="close" size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
               <Text
                 style={{
                   fontSize: 12,
