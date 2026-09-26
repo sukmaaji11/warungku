@@ -71,7 +71,7 @@ export default function PengaturanScreen() {
         <View style={s.card}>
           {[
             ['Aplikasi', 'Kasir WarungKu'],
-            ['Versi', '1.0.0'],
+            ['Versi', '1.0.1'],
             ['Database', 'SQLite Offline'],
             ['Mode', '🟢 Offline'],
           ].map(([l, v], i, arr) => (
