@@ -2,8 +2,8 @@
 import {
   BluetoothManager,
   BluetoothEscposPrinter,
-} from "@vardrz/react-native-bluetooth-escpos-printer";
-import { File } from "expo-file-system";
+} from '@vardrz/react-native-bluetooth-escpos-printer';
+import { File } from 'expo-file-system';
 
 const BM = BluetoothManager as any;
 const BEP = BluetoothEscposPrinter as any;
@@ -29,7 +29,7 @@ export async function getPairedPrinters(): Promise<any[]> {
         await new Promise((r) => setTimeout(r, 1500));
       } catch {
         throw new Error(
-          "Bluetooth tidak aktif. Aktifkan Bluetooth di HP kamu dulu.",
+          'Bluetooth tidak aktif. Aktifkan Bluetooth di HP kamu dulu.',
         );
       }
     }
@@ -38,25 +38,25 @@ export async function getPairedPrinters(): Promise<any[]> {
     let result: any = { paired: [], found: [] };
     try {
       const s = await BM.scanDevices();
-      result = typeof s === "string" ? JSON.parse(s) : s;
+      result = typeof s === 'string' ? JSON.parse(s) : s;
     } catch (scanErr: any) {
       // scanDevices gagal — coba ambil paired saja lewat cara lain
-      console.warn("scanDevices gagal, coba fallback:", scanErr);
+      console.warn('scanDevices gagal, coba fallback:', scanErr);
       try {
         // Beberapa versi library punya getDevicesDiscovered
         const s2 = await BM.getDevicesDiscovered?.();
-        if (s2) result = typeof s2 === "string" ? JSON.parse(s2) : s2;
+        if (s2) result = typeof s2 === 'string' ? JSON.parse(s2) : s2;
       } catch {
         // Fallback terakhir: return array kosong dengan pesan jelas
         throw new Error(
-          "Gagal scan perangkat Bluetooth.\n\nPastikan:\n• Bluetooth sudah aktif\n• Izin Bluetooth & Lokasi sudah diberikan\n• Printer sudah di-pair di Settings HP",
+          'Gagal scan perangkat Bluetooth.\n\nPastikan:\n• Bluetooth sudah aktif\n• Izin Bluetooth & Lokasi sudah diberikan\n• Printer sudah di-pair di Settings HP',
         );
       }
     }
 
     const parse = (d: any) => {
       try {
-        return typeof d === "string" ? JSON.parse(d) : d;
+        return typeof d === 'string' ? JSON.parse(d) : d;
       } catch {
         return d;
       }
@@ -75,7 +75,7 @@ export async function getPairedPrinters(): Promise<any[]> {
       return true;
     });
   } catch (e: any) {
-    console.warn("getPairedPrinters error:", e);
+    console.warn('getPairedPrinters error:', e);
     throw e; // lempar ke UI supaya Alert tampil pesan yang jelas
   }
 }
@@ -91,13 +91,13 @@ export async function connectPrinter(address: string): Promise<void> {
       _lastAddr = address;
       return; // sukses, keluar
     } catch (e: any) {
-      const msg = (e?.message || "").toLowerCase();
+      const msg = (e?.message || '').toLowerCase();
 
       // Kalau "already connected" → anggap sukses
       if (
-        msg.includes("already") ||
-        msg.includes("connected") ||
-        msg.includes("duplicate")
+        msg.includes('already') ||
+        msg.includes('connected') ||
+        msg.includes('duplicate')
       ) {
         _lastAddr = address;
         return;
@@ -114,7 +114,7 @@ export async function connectPrinter(address: string): Promise<void> {
   }
 
   // Semua retry gagal
-  const errMsg = lastError?.message || "Unknown error";
+  const errMsg = lastError?.message || 'Unknown error';
   throw new Error(
     `Gagal terhubung ke printer setelah ${MAX_RETRY}x percobaan.\n\n` +
       `Error: ${errMsg}\n\n` +
@@ -138,12 +138,12 @@ async function ensureConnected(address: string): Promise<void> {
   try {
     await BM.connect(address);
   } catch (e: any) {
-    const msg = (e?.message || "").toLowerCase();
+    const msg = (e?.message || '').toLowerCase();
     // "already connected" = OK
     if (
-      msg.includes("already") ||
-      msg.includes("connected") ||
-      msg.includes("duplicate")
+      msg.includes('already') ||
+      msg.includes('connected') ||
+      msg.includes('duplicate')
     ) {
       return;
     }
@@ -153,9 +153,9 @@ async function ensureConnected(address: string): Promise<void> {
     try {
       await BM.connect(address);
     } catch (e2: any) {
-      const msg2 = (e2?.message || "").toLowerCase();
-      if (msg2.includes("already") || msg2.includes("connected")) return;
-      throw new Error("Printer tidak bisa dihubungkan: " + e2?.message);
+      const msg2 = (e2?.message || '').toLowerCase();
+      if (msg2.includes('already') || msg2.includes('connected')) return;
+      throw new Error('Printer tidak bisa dihubungkan: ' + e2?.message);
     }
   }
 }
@@ -177,13 +177,10 @@ function col(left: string, right: string, width = 32): string {
 // Helper untuk menampilkan logo pada struk - Jadicuan Developer
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = "";
+  let binary = '';
   const chunkSize = 0x8000;
   for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(
-      i,
-      Math.min(i + chunkSize, bytes.length),
-    );
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
     binary += String.fromCharCode(...chunk);
   }
   return btoa(binary);
@@ -196,6 +193,7 @@ export interface StrukParams {
   noHp?: string;
   // =========== Jadicuan Developer ===============
   logo?: string;
+  cetakLogo?: boolean;
   // ==============================================
   footer?: string;
   noTrx: string;
@@ -231,14 +229,14 @@ export async function printStruk(
   }
 
   const d = new Date(p.waktu);
-  const tgl = d.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  const tgl = d.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
-  const jam = d.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const jam = d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   try {
@@ -246,36 +244,36 @@ export async function printStruk(
     await BEP.printerAlign(BEP.ALIGN.CENTER);
     //Add Logo Toko ke Struk Belanja - Jadicuan Developer
     // Logo toko
-    if (p.logo) {
-        try {
-          const logoBase64 = await logoToBase64(p.logo);
+    if (p.logo && p.cetakLogo !== false) {
+      try {
+        const logoBase64 = await logoToBase64(p.logo);
 
-          await BEP.printPic(logoBase64, {
-            width: 200,
-            center: true,
-            paperSize: 58,
-            autoCut: false,
-          });
+        await BEP.printPic(logoBase64, {
+          width: 200,
+          center: true,
+          paperSize: 58,
+          autoCut: false,
+        });
 
-          await BEP.printText("\n\r", {});
-        } catch (logoError) {
-          console.warn("Logo gagal dicetak, lanjut tanpa logo:", logoError);
-        }
+        await BEP.printText('\n\r', {});
+      } catch (logoError) {
+        console.warn('Logo gagal dicetak, lanjut tanpa logo:', logoError);
+      }
     }
 
-    await BEP.printText(p.namaToko + "\n\r", { widthtimes: 1, heigthtimes: 1 });
-    if (p.alamat) await BEP.printText(p.alamat + "\n\r", {});
-    if (p.noHp) await BEP.printText(p.noHp + "\n\r", {});
-    await BEP.printText("--------------------------------\n\r", {});
+    await BEP.printText(p.namaToko + '\n\r', { widthtimes: 1, heigthtimes: 1 });
+    if (p.alamat) await BEP.printText(p.alamat + '\n\r', {});
+    if (p.noHp) await BEP.printText(p.noHp + '\n\r', {});
+    await BEP.printText('--------------------------------\n\r', {});
 
     // Info transaksi — left
     await BEP.printerAlign(BEP.ALIGN.LEFT);
     await BEP.printText(`No    : ${p.noTrx}\n\r`, {});
     await BEP.printText(`Tgl   : ${tgl}\n\r`, {});
     await BEP.printText(`Jam   : ${jam}\n\r`, {});
-    await BEP.printText(`Kasir : ${p.kasir || "Admin"}\n\r`, {});
+    await BEP.printText(`Kasir : ${p.kasir || 'Admin'}\n\r`, {});
     await BEP.printText(`Metode: ${p.metode.toUpperCase()}\n\r`, {});
-    await BEP.printText("--------------------------------\n\r", {});
+    await BEP.printText('--------------------------------\n\r', {});
 
     // Items — pakai printText biasa (printColumn sering bermasalah)
     for (const item of p.items) {
@@ -285,29 +283,29 @@ export async function printStruk(
       await BEP.printText(`${item.nama_produk}\n\r`, {});
 
       // Detail qty x harga = subtotal
-      const left = `${item.qty} x Rp${item.harga.toLocaleString("id-ID")}`;
-      const right = `Rp${item.subtotal.toLocaleString("id-ID")}`;
+      const left = `${item.qty} x Rp${item.harga.toLocaleString('id-ID')}`;
+      const right = `Rp${item.subtotal.toLocaleString('id-ID')}`;
 
-      const detail = left.padEnd(30 - right.length, " ") + right;
+      const detail = left.padEnd(30 - right.length, ' ') + right;
 
-      await BEP.printText(detail + "\n\r", {});
+      await BEP.printText(detail + '\n\r', {});
 
       // Spasi kecil biar lega
-      await BEP.printText("\n\r", {});
+      await BEP.printText('\n\r', {});
     }
 
-    await BEP.printText("--------------------------------\n\r", {});
+    await BEP.printText('--------------------------------\n\r', {});
 
     // Summary
     await BEP.printerAlign(BEP.ALIGN.LEFT);
     await BEP.printText(
-      col("Subtotal", `Rp${p.subtotal.toLocaleString("id-ID")}`) + "\n\r",
+      col('Subtotal', `Rp${p.subtotal.toLocaleString('id-ID')}`) + '\n\r',
       {},
     );
 
     if (p.diskon > 0) {
       await BEP.printText(
-        col("Diskon", `-Rp${p.diskon.toLocaleString("id-ID")}`) + "\n\r",
+        col('Diskon', `-Rp${p.diskon.toLocaleString('id-ID')}`) + '\n\r',
         {},
       );
     }
@@ -316,43 +314,43 @@ export async function printStruk(
       await BEP.printText(
         col(
           `Pajak (${p.pajakPersen ?? 0}%)`,
-          `Rp${(p.pajak ?? 0).toLocaleString("id-ID")}`,
-        ) + "\n\r",
+          `Rp${(p.pajak ?? 0).toLocaleString('id-ID')}`,
+        ) + '\n\r',
         {},
       );
     }
 
     await BEP.printText(
-      col("TOTAL", `Rp${p.total.toLocaleString("id-ID")}`) + "\n\r",
+      col('TOTAL', `Rp${p.total.toLocaleString('id-ID')}`) + '\n\r',
       { widthtimes: 1, heigthtimes: 1 },
     );
 
-    if (p.metode === "tunai") {
+    if (p.metode === 'tunai') {
       await BEP.printText(
-        col("Bayar", `Rp${p.bayar.toLocaleString("id-ID")}`) + "\n\r",
+        col('Bayar', `Rp${p.bayar.toLocaleString('id-ID')}`) + '\n\r',
         {},
       );
       await BEP.printText(
-        col("Kembali", `Rp${p.kembalian.toLocaleString("id-ID")}`) + "\n\r",
+        col('Kembali', `Rp${p.kembalian.toLocaleString('id-ID')}`) + '\n\r',
         {},
       );
     }
 
     // Footer
-    await BEP.printText("--------------------------------\n\r", {});
+    await BEP.printText('--------------------------------\n\r', {});
     await BEP.printerAlign(BEP.ALIGN.CENTER);
-    await BEP.printText((p.footer || "Terima kasih!") + "\n\r", {});
+    await BEP.printText((p.footer || 'Terima kasih!') + '\n\r', {});
 
     // Feed paper
-    await BEP.printText("\n\r\n\r\n\r", {});
+    await BEP.printText('\n\r\n\r\n\r', {});
   } catch (e: any) {
-    const msg = e?.message || "Gagal cetak";
+    const msg = e?.message || 'Gagal cetak';
 
     // Kalau COMMAND_NOT_FOUND → printer putus, coba reconnect 1x
     if (
-      msg.includes("COMMAND_NOT_FOUND") ||
-      msg.includes("not connected") ||
-      msg.includes("not open")
+      msg.includes('COMMAND_NOT_FOUND') ||
+      msg.includes('not connected') ||
+      msg.includes('not open')
     ) {
       if (addr) {
         try {
@@ -362,7 +360,7 @@ export async function printStruk(
           return;
         } catch {
           throw new Error(
-            "Printer terputus. Sudah dicoba reconnect tapi gagal.\n\nPastikan printer menyala dan coba lagi.",
+            'Printer terputus. Sudah dicoba reconnect tapi gagal.\n\nPastikan printer menyala dan coba lagi.',
           );
         }
       }

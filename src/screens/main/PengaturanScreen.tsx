@@ -1067,11 +1067,23 @@ export default function PengaturanScreen({ navigation }: any) {
                 icon: 'resize-outline',
                 color: '#7C3AED',
               },
+              {
+                label: 'Preview Struk',
+                sub: 'Lihat dan atur tampilan struk',
+                icon: 'receipt-outline',
+                color: '#EA580C',
+              },
             ].map((item, i, arr) => (
               <View key={item.label}>
                 <TouchableOpacity
                   style={s.menuRow}
-                  onPress={() => navigation.navigate('Printer')}
+                  onPress={() =>
+                    navigation.navigate(
+                      item.label === 'Preview Struk'
+                        ? 'PreviewStruk'
+                        : 'Printer',
+                    )
+                  }
                 >
                   <View
                     style={[

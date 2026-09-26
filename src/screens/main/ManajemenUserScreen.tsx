@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,12 @@ import {
   Modal,
   TextInput,
   ScrollView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../../constants/colors";
-import { useAuthStore, UserRole } from "../../store/authStore";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants/colors';
+import { useAuthStore, UserRole } from '../../store/authStore';
 
 export default function ManajemenUserScreen({ navigation }: any) {
   const {
@@ -30,16 +30,16 @@ export default function ManajemenUserScreen({ navigation }: any) {
   const [showEdit, setShowEdit] = useState<any>(null);
 
   // Form tambah
-  const [fNama, setFNama] = useState("");
-  const [fUsername, setFUsername] = useState("");
-  const [fPin, setFPin] = useState("");
-  const [fPinConfirm, setFPinConfirm] = useState("");
-  const [fRole, setFRole] = useState<UserRole>("kasir");
+  const [fNama, setFNama] = useState('');
+  const [fUsername, setFUsername] = useState('');
+  const [fPin, setFPin] = useState('');
+  const [fPinConfirm, setFPinConfirm] = useState('');
+  const [fRole, setFRole] = useState<UserRole>('kasir');
 
   // Form edit / ganti PIN
-  const [ePinLama, setEPinLama] = useState("");
-  const [ePinBaru, setEPinBaru] = useState("");
-  const [eNama, setEName] = useState("");
+  const [ePinLama, setEPinLama] = useState('');
+  const [ePinBaru, setEPinBaru] = useState('');
+  const [eNama, setEName] = useState('');
 
   const load = useCallback(() => {
     setUsers(getAllUsers());
@@ -52,67 +52,75 @@ export default function ManajemenUserScreen({ navigation }: any) {
 
   const handleTambah = () => {
     if (!fNama.trim() || !fUsername.trim()) {
-      Alert.alert("Error", "Nama dan username wajib diisi");
+      Alert.alert('Error', 'Nama dan username wajib diisi');
       return;
     }
     if (fPin.length !== 6) {
-      Alert.alert("Error", "PIN harus 6 digit");
+      Alert.alert('Error', 'PIN harus 6 digit');
       return;
     }
     if (fPin !== fPinConfirm) {
-      Alert.alert("Error", "Konfirmasi PIN tidak cocok");
+      Alert.alert('Error', 'Konfirmasi PIN tidak cocok');
       return;
     }
     const ok = tambahUser(fNama, fUsername, fPin, fRole);
     if (ok) {
-      Alert.alert("Berhasil", `User ${fNama} berhasil ditambahkan`);
-      setFNama("");
-      setFUsername("");
-      setFPin("");
-      setFPinConfirm("");
+      Alert.alert('Berhasil', `User ${fNama} berhasil ditambahkan`);
+      setFNama('');
+      setFUsername('');
+      setFPin('');
+      setFPinConfirm('');
       setShowAdd(false);
       load();
     } else {
-      Alert.alert("Gagal", "Username sudah dipakai atau terjadi error");
+      Alert.alert(
+        'Gagal',
+        'Username atau PIN sudah digunakan. Silakan gunakan username atau PIN yang berbeda.',
+      );
     }
   };
 
   const handleGantiPin = () => {
     if (ePinBaru.length !== 6) {
-      Alert.alert("Error", "PIN baru harus 6 digit");
+      Alert.alert('Error', 'PIN baru harus 6 digit');
       return;
     }
     const ok = gantiPin(showEdit.id, ePinLama, ePinBaru);
     if (ok) {
-      Alert.alert("Berhasil", "PIN berhasil diubah");
-      setEPinLama("");
-      setEPinBaru("");
+      Alert.alert('Berhasil', 'PIN berhasil diubah');
+      setEPinLama('');
+      setEPinBaru('');
       setShowEdit(null);
       load();
     } else {
-      Alert.alert("Gagal", "PIN lama tidak cocok");
+      Alert.alert(
+        'Gagal',
+        'PIN lama tidak cocok atau PIN baru sudah digunakan user lain.',
+      );
     }
   };
 
   const handleToggleAktif = (user: any) => {
-    if (user.role === "owner") {
-      Alert.alert("Tidak bisa", "Owner tidak bisa dinonaktifkan");
+    if (user.id === 1) {
+      Alert.alert('Tidak bisa', 'Master Owner tidak bisa dinonaktifkan');
       return;
     }
+
     updateUser(user.id, { aktif: user.aktif ? 0 : 1 });
     load();
   };
 
   const handleHapus = (user: any) => {
-    if (user.role === "owner") {
-      Alert.alert("Tidak bisa", "Owner tidak bisa dihapus");
+    if (user.id === 1) {
+      Alert.alert('Tidak bisa', 'Master Owner tidak bisa dihapus');
       return;
     }
-    Alert.alert("Hapus User", `Yakin hapus ${user.nama}?`, [
-      { text: "Batal", style: "cancel" },
+
+    Alert.alert('Hapus User', `Yakin hapus ${user.nama}?`, [
+      { text: 'Batal', style: 'cancel' },
       {
-        text: "Hapus",
-        style: "destructive",
+        text: 'Hapus',
+        style: 'destructive',
         onPress: () => {
           hapusUser(user.id);
           load();
@@ -123,21 +131,21 @@ export default function ManajemenUserScreen({ navigation }: any) {
 
   const ROLE_INFO = {
     owner: {
-      label: "Owner",
+      label: 'Owner',
       color: Colors.primary,
       bg: Colors.primaryLight,
-      icon: "shield-checkmark" as const,
+      icon: 'shield-checkmark' as const,
     },
     kasir: {
-      label: "Kasir",
-      color: "#7C3AED",
-      bg: "#F5F3FF",
-      icon: "receipt-outline" as const,
+      label: 'Kasir',
+      color: '#7C3AED',
+      bg: '#F5F3FF',
+      icon: 'receipt-outline' as const,
     },
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -200,9 +208,10 @@ export default function ManajemenUserScreen({ navigation }: any) {
                     onPress={() => {
                       setShowEdit(user);
                       setEName(user.nama);
-                      setEPinLama("");
-                      setEPinBaru("");
-                    }}>
+                      setEPinLama('');
+                      setEPinBaru('');
+                    }}
+                  >
                     <Ionicons
                       name="pencil-outline"
                       size={16}
@@ -218,20 +227,22 @@ export default function ManajemenUserScreen({ navigation }: any) {
                           : Colors.successLight,
                       },
                     ]}
-                    onPress={() => handleToggleAktif(user)}>
+                    onPress={() => handleToggleAktif(user)}
+                  >
                     <Ionicons
-                      name={user.aktif ? "pause-outline" : "play-outline"}
+                      name={user.aktif ? 'pause-outline' : 'play-outline'}
                       size={16}
                       color={user.aktif ? Colors.warning : Colors.success}
                     />
                   </TouchableOpacity>
-                  {user.role !== "owner" && (
+                  {user.id !== 1 && (
                     <TouchableOpacity
                       style={[
                         s.actionBtn,
                         { backgroundColor: Colors.dangerLight },
                       ]}
-                      onPress={() => handleHapus(user)}>
+                      onPress={() => handleHapus(user)}
+                    >
                       <Ionicons
                         name="trash-outline"
                         size={16}
@@ -285,7 +296,7 @@ export default function ManajemenUserScreen({ navigation }: any) {
 
               <Text style={m.label}>Role</Text>
               <View style={m.roleRow}>
-                {(["kasir", "owner"] as UserRole[]).map((r) => {
+                {(['kasir', 'owner'] as UserRole[]).map((r) => {
                   const ri = ROLE_INFO[r];
                   return (
                     <TouchableOpacity
@@ -297,17 +308,19 @@ export default function ManajemenUserScreen({ navigation }: any) {
                           borderColor: ri.color,
                         },
                       ]}
-                      onPress={() => setFRole(r)}>
+                      onPress={() => setFRole(r)}
+                    >
                       <Ionicons
                         name={ri.icon}
                         size={16}
-                        color={fRole === r ? "#fff" : ri.color}
+                        color={fRole === r ? '#fff' : ri.color}
                       />
                       <Text
                         style={[
                           m.roleChipTxt,
-                          fRole === r && { color: "#fff" },
-                        ]}>
+                          fRole === r && { color: '#fff' },
+                        ]}
+                      >
                         {ri.label}
                       </Text>
                     </TouchableOpacity>
@@ -322,9 +335,9 @@ export default function ManajemenUserScreen({ navigation }: any) {
                   color={Colors.info}
                 />
                 <Text style={m.roleInfoTxt}>
-                  {fRole === "kasir"
-                    ? "Kasir: hanya bisa akses menu Kasir dan melihat struk."
-                    : "Owner: akses penuh semua fitur, termasuk produk, laporan, dan pengaturan."}
+                  {fRole === 'kasir'
+                    ? 'Kasir: hanya bisa akses menu Kasir dan melihat struk.'
+                    : 'Owner: akses penuh semua fitur, termasuk produk, laporan, dan pengaturan.'}
                 </Text>
               </View>
 
@@ -372,7 +385,8 @@ export default function ManajemenUserScreen({ navigation }: any) {
                     color: Colors.danger,
                     marginTop: -10,
                     marginBottom: 10,
-                  }}>
+                  }}
+                >
                   PIN tidak cocok
                 </Text>
               )}
@@ -380,10 +394,13 @@ export default function ManajemenUserScreen({ navigation }: any) {
               <TouchableOpacity
                 style={[
                   m.saveBtn,
-                  (fPin.length !== 6 || fPin !== fPinConfirm) && { opacity: 0.5 },
-  ]}
+                  (fPin.length !== 6 || fPin !== fPinConfirm) && {
+                    opacity: 0.5,
+                  },
+                ]}
                 onPress={handleTambah}
-                disabled={fPin.length !== 6 || fPin !== fPinConfirm}>
+                disabled={fPin.length !== 6 || fPin !== fPinConfirm}
+              >
                 <Ionicons name="person-add-outline" size={18} color="#fff" />
                 <Text style={m.saveBtnTxt}>Tambah User</Text>
               </TouchableOpacity>
@@ -443,8 +460,9 @@ export default function ManajemenUserScreen({ navigation }: any) {
 
             <TouchableOpacity
               style={[m.saveBtn, ePinBaru.length !== 6 && { opacity: 0.5 }]}
-  onPress={handleGantiPin}
-              disabled={ePinBaru.length !== 6}>
+              onPress={handleGantiPin}
+              disabled={ePinBaru.length !== 6}
+            >
               <Ionicons name="key-outline" size={18} color="#fff" />
               <Text style={m.saveBtnTxt}>Simpan PIN Baru</Text>
             </TouchableOpacity>
@@ -458,9 +476,9 @@ export default function ManajemenUserScreen({ navigation }: any) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 14,
@@ -469,18 +487,18 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
   addBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   list: {
     padding: 16,
@@ -488,12 +506,12 @@ const s = StyleSheet.create({
     backgroundColor: Colors.background,
     flexGrow: 1,
   },
-  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
   emptyTxt: { fontSize: 14, color: Colors.textMuted },
   userCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
@@ -505,87 +523,87 @@ const s = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarTxt: { fontSize: 16, fontWeight: "800" },
+  avatarTxt: { fontSize: 16, fontWeight: '800' },
   userInfo: { flex: 1, gap: 3 },
-  userNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  userName: { fontSize: 14, fontWeight: "700", color: Colors.text },
+  userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  userName: { fontSize: 14, fontWeight: '700', color: Colors.text },
   meBadge: {
     backgroundColor: Colors.primaryLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
   },
-  meBadgeTxt: { fontSize: 10, fontWeight: "700", color: Colors.primary },
+  meBadgeTxt: { fontSize: 10, fontWeight: '700', color: Colors.primary },
   userUsername: { fontSize: 11, color: Colors.textLight },
-  userBadges: { flexDirection: "row", gap: 6, marginTop: 2 },
+  userBadges: { flexDirection: 'row', gap: 6, marginTop: 2 },
   roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 3,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 10,
   },
-  roleTxt: { fontSize: 10, fontWeight: "700" },
+  roleTxt: { fontSize: 10, fontWeight: '700' },
   inactiveBadge: {
     backgroundColor: Colors.warningLight,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 10,
   },
-  inactiveTxt: { fontSize: 10, fontWeight: "700", color: Colors.warning },
-  userActions: { flexDirection: "row", gap: 6 },
+  inactiveTxt: { fontSize: 10, fontWeight: '700', color: Colors.warning },
+  userActions: { flexDirection: 'row', gap: 6 },
   actionBtn: {
     width: 32,
     height: 32,
     borderRadius: 8,
     backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
 const m = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end" },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 24,
-    maxHeight: "85%",
+    maxHeight: '85%',
   },
   handle: {
     width: 40,
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   mHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
   },
-  mTitle: { fontSize: 18, fontWeight: "800", color: Colors.text },
+  mTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
   sectionLbl: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textLight,
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   label: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textMuted,
     marginBottom: 6,
   },
@@ -600,12 +618,12 @@ const m = StyleSheet.create({
     color: Colors.text,
     marginBottom: 14,
   },
-  roleRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  roleRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   roleChip: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     padding: 12,
     borderRadius: 12,
@@ -613,22 +631,22 @@ const m = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  roleChipTxt: { fontSize: 13, fontWeight: "700", color: Colors.textMuted },
+  roleChipTxt: { fontSize: 13, fontWeight: '700', color: Colors.textMuted },
   roleInfo: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 6,
     backgroundColor: Colors.infoLight,
     borderRadius: 10,
     padding: 10,
     marginBottom: 16,
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
   },
   roleInfoTxt: { flex: 1, fontSize: 11, color: Colors.info, lineHeight: 16 },
   // ── PIN dots indicator ──
   pinDots: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: -8,
     marginBottom: 16,
   },
@@ -638,16 +656,16 @@ const m = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   pinDotFilled: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
   saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: Colors.primary,
     borderRadius: 14,
@@ -655,5 +673,5 @@ const m = StyleSheet.create({
     marginTop: 4,
     marginBottom: 24,
   },
-  saveBtnTxt: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  saveBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

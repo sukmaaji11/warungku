@@ -1,43 +1,44 @@
-import React, { useEffect, useState } from "react";
-import { createStackNavigator } from "@react-navigation/stack";
-import { useAuthStore } from "../store/authStore";
-import TabNavigator from "./TabNavigator";
+import React, { useEffect, useState } from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { useAuthStore } from '../store/authStore';
+import TabNavigator from './TabNavigator';
 
 // Auth screens
-import AktivasiLisensiScreen from "../screens/auth/AktivasiLisensiScreen";
-import SetupPINScreen from "../screens/auth/SetupPINScreen";
-import LoginScreen from "../screens/auth/LoginScreen";
-import SplashScreen from "../screens/auth/SplashScreen";
+import AktivasiLisensiScreen from '../screens/auth/AktivasiLisensiScreen';
+import SetupPINScreen from '../screens/auth/SetupPINScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import SplashScreen from '../screens/auth/SplashScreen';
 
 // Produk screens
 import {
   TambahProdukScreen,
   EditProdukScreen,
   ImportExcelScreen,
-} from "../screens/produk/ProdukFormScreens";
+} from '../screens/produk/ProdukFormScreens';
 
 // Main screens — default exports
-import StrukScreen from "../screens/main/StrukScreen";
-import DiskonScreen from "../screens/main/DiskonScreen";
-import TambahDiskonScreen from "../screens/main/TambahDiskonScreen";
-import KonsinyasiScreen from "../screens/main/KonsinyasiScreen";
-import KonsiniyorListScreen from "../screens/main/KonsiniyorListScreen";
-import TransaksiKonsinyasiScreen from "../screens/main/TransaksiKonsinyasiScreen";
-import TambahKonsinyasiScreen from "../screens/main/TambahKonsinyasiScreen";
-import PengeluaranScreen from "../screens/main/PengeluaranScreen";
-import KategoriScreen from "../screens/main/KategoriScreen";
-import LabelHargaScreen from "../screens/main/LabelHargaScreen";
-import ManajemenUserScreen from "../screens/main/ManajemenUserScreen";
-import PrinterScreen from "../screens/main/PrinterScreen";
-import AiAnalisisScreen from "../screens/main/AiAnalisisScreen";
-import KatalogScreen from "../screens/main/KatalogScreen";
+import StrukScreen from '../screens/main/StrukScreen';
+import DiskonScreen from '../screens/main/DiskonScreen';
+import TambahDiskonScreen from '../screens/main/TambahDiskonScreen';
+import KonsinyasiScreen from '../screens/main/KonsinyasiScreen';
+import KonsiniyorListScreen from '../screens/main/KonsiniyorListScreen';
+import TransaksiKonsinyasiScreen from '../screens/main/TransaksiKonsinyasiScreen';
+import TambahKonsinyasiScreen from '../screens/main/TambahKonsinyasiScreen';
+import PengeluaranScreen from '../screens/main/PengeluaranScreen';
+import KategoriScreen from '../screens/main/KategoriScreen';
+import LabelHargaScreen from '../screens/main/LabelHargaScreen';
+import ManajemenUserScreen from '../screens/main/ManajemenUserScreen';
+import PrinterScreen from '../screens/main/PrinterScreen';
+import AiAnalisisScreen from '../screens/main/AiAnalisisScreen';
+import KatalogScreen from '../screens/main/KatalogScreen';
+import PreviewStrukScreen from '../screens/main/PreviewStrukScreen';
 
 // Named exports
-import { LaporanKasirScreen } from "../screens/main/LaporanKasirScreen";
-import { PiutangScreen } from "../screens/main/PiutangScreen";
-import { LaporanKonsinyasiScreen } from "../screens/main/LaporanKonsinyasiScreen";
-import PelangganScreen from "../screens/main/PelangganScreen";
-import GrosirScreen from "../screens/main/GrosirScreen";
+import { LaporanKasirScreen } from '../screens/main/LaporanKasirScreen';
+import { PiutangScreen } from '../screens/main/PiutangScreen';
+import { LaporanKonsinyasiScreen } from '../screens/main/LaporanKonsinyasiScreen';
+import PelangganScreen from '../screens/main/PelangganScreen';
+import GrosirScreen from '../screens/main/GrosirScreen';
 
 const AuthStack = createStackNavigator();
 const MainStack = createStackNavigator();
@@ -53,22 +54,22 @@ function AuthNavigator() {
 
   const renderScreen = () => {
     switch (status) {
-      case "no_lisensi":
+      case 'no_lisensi':
         return (
           <AuthStack.Screen
             name="AktivasiLisensi"
             component={AktivasiLisensiScreen}
           />
         );
-      case "need_pin_setup":
+      case 'need_pin_setup':
         return (
           <AuthStack.Screen
             name="SetupPIN"
             component={SetupPINScreen}
-            initialParams={{ namaToko: namaToko ?? "" }}
+            initialParams={{ namaToko: namaToko ?? '' }}
           />
         );
-      case "need_login":
+      case 'need_login':
       default:
         // Semua status tidak dikenal → fallback ke Login
         return <AuthStack.Screen name="Login" component={LoginScreen} />;
@@ -139,6 +140,7 @@ function MainNavigator() {
       {/* Pengaturan */}
       <MainStack.Screen name="ManajemenUser" component={ManajemenUserScreen} />
       <MainStack.Screen name="Printer" component={PrinterScreen} />
+      <MainStack.Screen name="PreviewStruk" component={PreviewStrukScreen} />
 
       {/* Extras */}
       <MainStack.Screen name="Katalog" component={KatalogScreen} />
@@ -162,6 +164,6 @@ export default function AppNavigator() {
     return <SplashScreen onFinish={() => setSplashDone(true)} />;
   }
 
-  if (status === "authenticated") return <MainNavigator />;
+  if (status === 'authenticated') return <MainNavigator />;
   return <AuthNavigator />;
 }

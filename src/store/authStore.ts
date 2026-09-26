@@ -1,15 +1,15 @@
-import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getDB } from "../db/database";
+import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDB } from '../db/database';
 
 export type AuthStatus =
-  | "loading"
-  | "no_lisensi"
-  | "need_pin_setup"
-  | "need_login"
-  | "authenticated";
+  | 'loading'
+  | 'no_lisensi'
+  | 'need_pin_setup'
+  | 'need_login'
+  | 'authenticated';
 
-export type UserRole = "owner" | "kasir";
+export type UserRole = 'owner' | 'kasir';
 
 export interface UserInfo {
   id: number;
@@ -53,31 +53,31 @@ function rows(result: unknown[]): any[] {
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  status: "loading",
-  namaToko: "",
+  status: 'loading',
+  namaToko: '',
   currentUser: null,
 
   setStatus: (s) => set({ status: s }),
 
   checkAuth: async () => {
     const timeout = setTimeout(() => {
-      console.warn("[checkAuth] timeout");
-      set({ status: "no_lisensi" });
+      console.warn('[checkAuth] timeout');
+      set({ status: 'no_lisensi' });
     }, 8000);
 
     try {
       // ── 1. AsyncStorage ──────────────────────────────────────────────
       let lisensiAktif = false;
-      let namaTokoAS = "";
+      let namaTokoAS = '';
       try {
         const vals = await AsyncStorage.multiGet([
-          "kasirku_status",
-          "kasirku_nama_toko",
+          'kasirku_status',
+          'kasirku_nama_toko',
         ]);
-        lisensiAktif = vals[0][1] === "aktif";
-        namaTokoAS = vals[1][1] || "";
+        lisensiAktif = vals[0][1] === 'aktif';
+        namaTokoAS = vals[1][1] || '';
       } catch (e) {
-        console.warn("[checkAuth] AsyncStorage:", e);
+        console.warn('[checkAuth] AsyncStorage:', e);
       }
 
       // ── 2. Init DB ───────────────────────────────────────────────────
@@ -85,9 +85,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       try {
         db = getDB();
       } catch (e) {
-        console.warn("[checkAuth] getDB:", e);
+        console.warn('[checkAuth] getDB:', e);
         clearTimeout(timeout);
-        set({ status: lisensiAktif ? "need_pin_setup" : "no_lisensi" });
+        set({ status: lisensiAktif ? 'need_pin_setup' : 'no_lisensi' });
         return;
       }
 
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       if (!lisensiAktif) {
         clearTimeout(timeout);
-        set({ status: "no_lisensi" });
+        set({ status: 'no_lisensi' });
         return;
       }
 
@@ -140,20 +140,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
         );
         ownerAda = !!owner;
       } catch (e) {
-        console.warn("[checkAuth] users table:", e);
+        console.warn('[checkAuth] users table:', e);
       }
 
       if (!ownerAda) {
         clearTimeout(timeout);
-        set({ status: "need_pin_setup", namaToko });
+        set({ status: 'need_pin_setup', namaToko });
         return;
       }
 
       // ── 6. Cek session aktif ─────────────────────────────────────────
       try {
         const vals = await AsyncStorage.multiGet([
-          "kasirku_last_login",
-          "kasirku_last_user_id",
+          'kasirku_last_login',
+          'kasirku_last_user_id',
         ]);
         const lastLogin = vals[0][1];
         const lastUserId = vals[1][1];
@@ -170,7 +170,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
             if (r) {
               clearTimeout(timeout);
               set({
-                status: "authenticated",
+                status: 'authenticated',
                 namaToko,
                 currentUser: {
                   id: r.id,
@@ -184,16 +184,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
           }
         }
       } catch (e) {
-        console.warn("[checkAuth] session:", e);
+        console.warn('[checkAuth] session:', e);
       }
 
       // ── 7. Minta login ───────────────────────────────────────────────
       clearTimeout(timeout);
-      set({ status: "need_login", namaToko });
+      set({ status: 'need_login', namaToko });
     } catch (e) {
-      console.error("[checkAuth] fatal:", e);
+      console.error('[checkAuth] fatal:', e);
       clearTimeout(timeout);
-      set({ status: "no_lisensi" });
+      set({ status: 'no_lisensi' });
     }
   },
 
@@ -218,10 +218,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       );
       db.runSync(
         `INSERT OR REPLACE INTO users (nama,username,pin,role,aktif) VALUES ('Owner','owner',?,?,1)`,
-        [pin, "owner"],
+        [pin, 'owner'],
       );
 
-      AsyncStorage.getItem("kasirku_nama_toko").then((nama) => {
+      AsyncStorage.getItem('kasirku_nama_toko').then((nama) => {
         if (nama) {
           try {
             getDB().runSync(
@@ -232,16 +232,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       });
 
-      AsyncStorage.setItem("kasirku_last_login", Date.now().toString());
-      AsyncStorage.setItem("kasirku_last_user_id", "1");
+      AsyncStorage.setItem('kasirku_last_login', Date.now().toString());
+      AsyncStorage.setItem('kasirku_last_user_id', '1');
 
       set({
-        status: "authenticated",
-        currentUser: { id: 1, nama: "Owner", username: "owner", role: "owner" },
+        status: 'authenticated',
+        currentUser: { id: 1, nama: 'Owner', username: 'owner', role: 'owner' },
       });
       return true;
     } catch (e) {
-      console.error("[setupPIN]:", e);
+      console.error('[setupPIN]:', e);
       return false;
     }
   },
@@ -260,11 +260,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       );
       if (!r) return false;
 
-      AsyncStorage.setItem("kasirku_last_login", Date.now().toString());
-      AsyncStorage.setItem("kasirku_last_user_id", r.id.toString());
+      AsyncStorage.setItem('kasirku_last_login', Date.now().toString());
+      AsyncStorage.setItem('kasirku_last_user_id', r.id.toString());
 
       set({
-        status: "authenticated",
+        status: 'authenticated',
         currentUser: {
           id: r.id,
           nama: r.nama,
@@ -274,15 +274,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
       return true;
     } catch (e) {
-      console.error("[login]:", e);
+      console.error('[login]:', e);
       return false;
     }
   },
 
   logout: () => {
-    AsyncStorage.removeItem("kasirku_last_login");
-    AsyncStorage.removeItem("kasirku_last_user_id");
-    set({ status: "need_login", currentUser: null });
+    AsyncStorage.removeItem('kasirku_last_login');
+    AsyncStorage.removeItem('kasirku_last_user_id');
+    set({ status: 'need_login', currentUser: null });
   },
 
   getAllUsers: () => {
@@ -302,22 +302,32 @@ export const useAuthStore = create<AuthStore>((set) => ({
   tambahUser: (nama, username, pin, role) => {
     try {
       const db = getDB();
+
+      // Cek apakah PIN sudah digunakan user lain
+      const pinTerpakai = row(
+        db.getFirstSync(`SELECT id FROM users WHERE pin = ? LIMIT 1`, [pin]),
+      );
+
+      if (pinTerpakai) {
+        return false;
+      }
+
       db.runSync(
         `INSERT INTO users (nama,username,pin,role,aktif) VALUES (?,?,?,?,1)`,
         [nama.trim(), username.trim().toLowerCase(), pin, role],
       );
+
       return true;
     } catch {
       return false;
     }
   },
-
   updateUser: (id, data) => {
     try {
       const db = getDB();
       const fields = Object.keys(data)
         .map((k) => `${k}=?`)
-        .join(",");
+        .join(',');
       db.runSync(`UPDATE users SET ${fields} WHERE id=?`, [
         ...Object.values(data),
         id,
@@ -331,9 +341,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   hapusUser: (id) => {
     try {
       const db = getDB();
-      const u = row(db.getFirstSync(`SELECT role FROM users WHERE id=?`, [id]));
-      if (u?.role === "owner") return false;
+
+      if (id === 1) return false;
+
       db.runSync(`DELETE FROM users WHERE id=?`, [id]);
+
       return true;
     } catch {
       return false;
@@ -343,18 +355,37 @@ export const useAuthStore = create<AuthStore>((set) => ({
   gantiPin: (id, pinLama, pinBaru) => {
     try {
       const db = getDB();
+
       const r = row(
         db.getFirstSync(`SELECT pin,role FROM users WHERE id=?`, [id]),
       );
+
+      // Cek PIN lama
       if (r?.pin !== pinLama) return false;
+
+      // Cek apakah PIN baru sudah digunakan user lain
+      const pinTerpakai = row(
+        db.getFirstSync(
+          `SELECT id FROM users WHERE pin = ? AND id != ? LIMIT 1`,
+          [pinBaru, id],
+        ),
+      );
+
+      if (pinTerpakai) return false;
+
+      // Update PIN
       db.runSync(`UPDATE users SET pin=? WHERE id=?`, [pinBaru, id]);
-      if (r?.role === "owner") {
+
+      // Sinkronisasi PIN Master Owner
+      if (r?.role === 'owner') {
         db.runSync(
           `INSERT OR REPLACE INTO pengaturan (key,value) VALUES ('pin',?)`,
           [pinBaru],
         );
       }
-      AsyncStorage.setItem("kasirku_last_login", Date.now().toString());
+
+      AsyncStorage.setItem('kasirku_last_login', Date.now().toString());
+
       return true;
     } catch {
       return false;

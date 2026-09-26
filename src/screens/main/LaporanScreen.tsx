@@ -226,6 +226,7 @@ function TerlarisModal({ visible, onClose }: any) {
 
   const [customDari, setCustomDari] = useState('');
   const [customSampai, setCustomSampai] = useState('');
+  const [searchProduk, setSearchProduk] = useState('');
 
   const [showCustom, setShowCustom] = useState(false);
   const [showPicker, setShowPicker] = useState<'dari' | 'sampai' | null>(null);
@@ -278,7 +279,16 @@ function TerlarisModal({ visible, onClose }: any) {
   );
    */
   }
-  const maxQty = list[0]?.qty || 1;
+  const filteredList = searchProduk.trim()
+    ? list.filter((item) =>
+        item.nama_produk
+          ?.toLowerCase()
+          .includes(searchProduk.trim().toLowerCase()),
+      )
+    : list;
+
+  const maxQty = filteredList[0]?.qty || 1;
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={m.safe} edges={['top']}>
@@ -324,8 +334,51 @@ function TerlarisModal({ visible, onClose }: any) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: 12,
+            marginBottom: 4,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#F9FAFB',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              height: 44,
+            }}
+          >
+            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+
+            <TextInput
+              value={searchProduk}
+              onChangeText={setSearchProduk}
+              placeholder="Cari nama produk..."
+              placeholderTextColor="#9CA3AF"
+              style={{
+                flex: 1,
+                marginLeft: 8,
+                fontSize: 13,
+                color: '#111827',
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {searchProduk.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchProduk('')}>
+                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
         <FlatList
-          data={list}
+          data={filteredList}
           keyExtractor={(_, i) => i.toString()}
           contentContainerStyle={{ padding: 16, gap: 10 }}
           showsVerticalScrollIndicator={false}

@@ -72,7 +72,7 @@ export default function ProdukScreen({ navigation }: any) {
     if (sortBy === 'stok') data = [...data].sort((a, b) => a.stok - b.stok);
     setList(data);
     setKats(getAllKategori());
-    setTotalAssetValue(getTotalAssetValue());
+    setTotalAssetValue(getTotalAssetValue(activeKat));
   }, [search, activeKat, sortBy]);
 
   useFocusEffect(

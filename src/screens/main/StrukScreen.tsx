@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,20 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-} from "react-native";
+} from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import { formatRupiah } from "../../utils/format";
-import { getPengaturan } from "../../db/produkRepo";
-import { Colors } from "../../constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { printStruk, connectPrinter } from "../../utils/printer";
-import { useAuthStore } from "../../store/authStore";
+} from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { formatRupiah } from '../../utils/format';
+import { getPengaturan } from '../../db/produkRepo';
+import { Colors } from '../../constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { printStruk, connectPrinter } from '../../utils/printer';
+import { useAuthStore } from '../../store/authStore';
 
 export default function StrukScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -44,29 +44,29 @@ export default function StrukScreen({ route, navigation }: any) {
 
   const settings = getPengaturan();
   // Add logo Toko - Jadiicuan Developer
-  const logoToko = settings.logo_toko || "";
-  const namaToko = settings.nama_toko || "Toko Saya";
-  const alamat = settings.alamat || "";
-  const noHp = settings.no_hp || "";
-  const footer = settings.footer_struk || "Terima kasih atas kunjungan Anda!";
+  const logoToko = settings.logo_toko || '';
+  const namaToko = settings.nama_toko || 'Toko Saya';
+  const alamat = settings.alamat || '';
+  const noHp = settings.no_hp || '';
+  const footer = settings.footer_struk || 'Terima kasih atas kunjungan Anda!';
 
   const dtObj = new Date(waktu);
-  const tanggal = dtObj.toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+  const tanggal = dtObj.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   });
-  const jam = dtObj.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const jam = dtObj.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   const metodeLogo: Record<string, string> = {
-    tunai: "💵",
-    transfer: "📱",
-    qris: "📲",
-    hutang: "🕐",
+    tunai: '💵',
+    transfer: '📱',
+    qris: '📲',
+    hutang: '🕐',
   };
 
   // ── Generate HTML untuk PDF ──────────────────────────────────────────────
@@ -82,7 +82,7 @@ export default function StrukScreen({ route, navigation }: any) {
       </tr>
     `,
       )
-      .join("");
+      .join('');
 
     return `
 <!DOCTYPE html>
@@ -367,8 +367,8 @@ export default function StrukScreen({ route, navigation }: any) {
         <div class="store-logo">🏪</div>
         <div class="store-name">${namaToko}</div>
         <div class="store-info">
-          ${alamat ? alamat + "<br>" : ""}
-          ${noHp ? "📞 " + noHp : ""}
+          ${alamat ? alamat + '<br>' : ''}
+          ${noHp ? '📞 ' + noHp : ''}
         </div>
       </div>
 
@@ -388,11 +388,11 @@ export default function StrukScreen({ route, navigation }: any) {
         </div>
         <div class="invoice-row">
           <span class="invoice-label">Metode</span>
-          <span class="metode-badge">${metodeLogo[metode] || "💵"} ${metode.charAt(0).toUpperCase() + metode.slice(1)}</span>
+          <span class="metode-badge">${metodeLogo[metode] || '💵'} ${metode.charAt(0).toUpperCase() + metode.slice(1)}</span>
         </div>
         <div class="invoice-row">
           <span class="invoice-label">Kasir</span>
-          <span class="invoice-val">${currentUser?.nama || "Admin"}</span>
+          <span class="invoice-val">${currentUser?.nama || 'Admin'}</span>
         </div>
       </div>
 
@@ -420,7 +420,7 @@ export default function StrukScreen({ route, navigation }: any) {
         <span>Diskon</span>
         <span class="sum-diskon">-${formatRupiah(diskon)}</span>
       </div>`
-          : ""
+          : ''
       }
       ${
         pajak > 0
@@ -429,7 +429,7 @@ export default function StrukScreen({ route, navigation }: any) {
         <span>Pajak (${pajakPersen}%)</span>
         <span class="sum-val">${formatRupiah(pajak)}</span>
       </div>`
-          : ""
+          : ''
       }
 
       <!-- Total -->
@@ -440,7 +440,7 @@ export default function StrukScreen({ route, navigation }: any) {
 
       <!-- Tunai -->
       ${
-        metode === "tunai"
+        metode === 'tunai'
           ? `
       <div class="bayar-row">
         <span>Uang Bayar</span>
@@ -450,7 +450,7 @@ export default function StrukScreen({ route, navigation }: any) {
         <span class="kembalian-label">💚 Kembalian</span>
         <span class="kembalian-val">${formatRupiah(kembalian)}</span>
       </div>`
-          : ""
+          : ''
       }
 
       <hr class="divider-dash">
@@ -458,7 +458,7 @@ export default function StrukScreen({ route, navigation }: any) {
       <!-- Footer -->
       <div class="receipt-footer">
         <div class="footer-text">${footer}</div>
-        ${noHp ? `<div class="footer-sub">📞 ${noHp}</div>` : ""}
+        ${noHp ? `<div class="footer-sub">📞 ${noHp}</div>` : ''}
 
         <!-- Barcode visual (simulasi) -->
         <div class="barcode-section">
@@ -478,17 +478,17 @@ export default function StrukScreen({ route, navigation }: any) {
   };
 
   const handlePrintBluetooth = async () => {
-    const addr = await AsyncStorage.getItem("kasirku_printer_address");
+    const addr = await AsyncStorage.getItem('kasirku_printer_address');
     if (!addr) {
       Alert.alert(
-        "Printer Belum Dipilih",
-        "Pilih printer Bluetooth dulu di Pengaturan → Printer Bluetooth.",
+        'Printer Belum Dipilih',
+        'Pilih printer Bluetooth dulu di Pengaturan → Printer Bluetooth.',
         [
-          { text: "Batal", style: "cancel" },
+          { text: 'Batal', style: 'cancel' },
           {
-            text: "Ke Pengaturan",
+            text: 'Ke Pengaturan',
             onPress: () =>
-              navigation.navigate("MainTabs", { screen: "Pengaturan" }),
+              navigation.navigate('MainTabs', { screen: 'Pengaturan' }),
           },
         ],
       );
@@ -503,10 +503,11 @@ export default function StrukScreen({ route, navigation }: any) {
         noHp,
         // Add Logo Toko - Jadicuan Developer
         logo: logoToko,
+        cetakLogo: settings.cetak_logo_struk !== '0',
         footer,
         noTrx,
         waktu,
-        kasir: currentUser?.nama || "Admin",
+        kasir: currentUser?.nama || 'Admin',
         metode,
         items,
         subtotal,
@@ -517,9 +518,9 @@ export default function StrukScreen({ route, navigation }: any) {
         bayar,
         kembalian,
       });
-      Alert.alert("✅ Berhasil!", "Struk berhasil dicetak.");
+      Alert.alert('✅ Berhasil!', 'Struk berhasil dicetak.');
     } catch (e: any) {
-      Alert.alert("Gagal Print", e.message || "Cek koneksi printer BT.");
+      Alert.alert('Gagal Print', e.message || 'Cek koneksi printer BT.');
     } finally {
       setPrintingBT(false);
     }
@@ -536,7 +537,7 @@ export default function StrukScreen({ route, navigation }: any) {
         (w, i) =>
           `<div class="bar" style="width:${w}px;opacity:${i % 2 === 0 ? 1 : 0}"></div>`,
       )
-      .join("");
+      .join('');
   };
 
   const handlePrint = async () => {
@@ -550,15 +551,15 @@ export default function StrukScreen({ route, navigation }: any) {
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri, {
-          mimeType: "application/pdf",
+          mimeType: 'application/pdf',
           dialogTitle: `Struk ${noTrx}`,
-          UTI: "com.adobe.pdf",
+          UTI: 'com.adobe.pdf',
         });
       } else {
-        Alert.alert("PDF Tersimpan", `File tersimpan di: ${uri}`);
+        Alert.alert('PDF Tersimpan', `File tersimpan di: ${uri}`);
       }
     } catch (e: any) {
-      Alert.alert("Error", e.message || "Gagal generate PDF");
+      Alert.alert('Error', e.message || 'Gagal generate PDF');
     } finally {
       setLoading(false);
     }
@@ -569,8 +570,8 @@ export default function StrukScreen({ route, navigation }: any) {
     try {
       await Print.printAsync({ html: generateHTML(), width: 320 });
     } catch (e: any) {
-      if (!e.message?.includes("cancel")) {
-        Alert.alert("Error", e.message || "Gagal print");
+      if (!e.message?.includes('cancel')) {
+        Alert.alert('Error', e.message || 'Gagal print');
       }
     } finally {
       setLoading(false);
@@ -578,18 +579,20 @@ export default function StrukScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity
           style={s.headerBtn}
-          onPress={() => navigation.goBack()}>
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Struk Pembayaran</Text>
         <TouchableOpacity
           style={s.headerBtn}
           onPress={handlePrint}
-          disabled={loading}>
+          disabled={loading}
+        >
           {loading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
@@ -604,7 +607,8 @@ export default function StrukScreen({ route, navigation }: any) {
           s.content,
           { paddingBottom: insets.bottom + 24 },
         ]}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         {/* Preview struk di app */}
         <View style={s.receiptCard}>
           {/* Notch atas */}
@@ -630,18 +634,19 @@ export default function StrukScreen({ route, navigation }: any) {
             {/* Invoice info grid */}
             <View style={s.infoGrid}>
               {[
-                { label: "No. Invoice", val: noTrx, mono: true },
-                { label: "Tanggal", val: tanggal },
-                { label: "Waktu", val: jam },
-                { label: "Kasir", val: currentUser?.nama || "Admin" },
+                { label: 'No. Invoice', val: noTrx, mono: true },
+                { label: 'Tanggal', val: tanggal },
+                { label: 'Waktu', val: jam },
+                { label: 'Kasir', val: currentUser?.nama || 'Admin' },
               ].map((row, i) => (
                 <View key={i} style={s.infoRow}>
                   <Text style={s.infoLabel}>{row.label}</Text>
                   <Text
                     style={[
                       s.infoVal,
-                      row.mono && { fontFamily: "monospace", fontSize: 11 },
-                    ]}>
+                      row.mono && { fontFamily: 'monospace', fontSize: 11 },
+                    ]}
+                  >
                     {row.val}
                   </Text>
                 </View>
@@ -650,7 +655,7 @@ export default function StrukScreen({ route, navigation }: any) {
                 <Text style={s.infoLabel}>Metode</Text>
                 <View style={s.metodePill}>
                   <Text style={s.metodePillTxt}>
-                    {metodeLogo[metode]}{" "}
+                    {metodeLogo[metode]}{' '}
                     {metode.charAt(0).toUpperCase() + metode.slice(1)}
                   </Text>
                 </View>
@@ -706,7 +711,7 @@ export default function StrukScreen({ route, navigation }: any) {
             </View>
 
             {/* Tunai */}
-            {metode === "tunai" && (
+            {metode === 'tunai' && (
               <View style={s.tunaiBox}>
                 <View style={s.sumRow}>
                   <Text style={s.sumLabel}>Uang Bayar</Text>
@@ -762,7 +767,8 @@ export default function StrukScreen({ route, navigation }: any) {
           <TouchableOpacity
             style={s.actionBtn}
             onPress={handlePrint}
-            disabled={loading}>
+            disabled={loading}
+          >
             {loading ? (
               <ActivityIndicator size="small" color={Colors.primary} />
             ) : (
@@ -778,7 +784,8 @@ export default function StrukScreen({ route, navigation }: any) {
           <TouchableOpacity
             style={s.actionBtn}
             onPress={handlePrintDirect}
-            disabled={loading}>
+            disabled={loading}
+          >
             <Ionicons
               name="document-outline"
               size={18}
@@ -796,7 +803,8 @@ export default function StrukScreen({ route, navigation }: any) {
               },
             ]}
             onPress={handlePrintBluetooth}
-            disabled={printingBT}>
+            disabled={printingBT}
+          >
             {printingBT ? (
               <ActivityIndicator size="small" color={Colors.primary} />
             ) : (
@@ -813,8 +821,9 @@ export default function StrukScreen({ route, navigation }: any) {
         <TouchableOpacity
           style={s.newTrxBtn}
           onPress={() =>
-            navigation.reset({ index: 0, routes: [{ name: "MainTabs" }] })
-          }>
+            navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] })
+          }
+        >
           <Ionicons name="add-circle-outline" size={20} color="#fff" />
           <Text style={s.newTrxBtnTxt}>Transaksi Baru</Text>
         </TouchableOpacity>
@@ -826,9 +835,9 @@ export default function StrukScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 16,
@@ -837,29 +846,29 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
   scroll: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 16 },
 
   receiptCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 0,
     marginBottom: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
     elevation: 6,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
 
   notchRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.background,
     height: 20,
   },
@@ -867,14 +876,14 @@ const s = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginLeft: -10,
   },
   notchCircleR: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     marginRight: -10,
   },
   notchDash: {
@@ -886,27 +895,27 @@ const s = StyleSheet.create({
 
   receiptInner: { paddingHorizontal: 22, paddingVertical: 20 },
 
-  tokoHeader: { alignItems: "center", marginBottom: 4 },
+  tokoHeader: { alignItems: 'center', marginBottom: 4 },
   tokoEmoji: { fontSize: 36, marginBottom: 8 },
   tokoNama: {
     fontSize: 20,
-    fontWeight: "900",
+    fontWeight: '900',
     color: Colors.primary,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 1,
-    textAlign: "center",
+    textAlign: 'center',
   },
   tokoInfo: {
     fontSize: 11,
     color: Colors.textLight,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 3,
   },
 
   dividerDash: {
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    borderStyle: "dashed",
+    borderStyle: 'dashed',
     marginVertical: 14,
   },
   dividerSolid: {
@@ -917,66 +926,66 @@ const s = StyleSheet.create({
 
   infoGrid: { gap: 6 },
   infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   infoLabel: { fontSize: 11, color: Colors.textLight },
-  infoVal: { fontSize: 12, fontWeight: "700", color: Colors.text },
+  infoVal: { fontSize: 12, fontWeight: '700', color: Colors.text },
   metodePill: {
     backgroundColor: Colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 20,
   },
-  metodePillTxt: { fontSize: 11, fontWeight: "700", color: Colors.primary },
+  metodePillTxt: { fontSize: 11, fontWeight: '700', color: Colors.primary },
 
   sectionTitle: {
     fontSize: 9,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.textLight,
     letterSpacing: 1.5,
     marginBottom: 10,
   },
   itemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginBottom: 12,
   },
   itemMeta: { flex: 1, paddingRight: 8 },
-  itemNama: { fontSize: 13, fontWeight: "700", color: Colors.text },
+  itemNama: { fontSize: 13, fontWeight: '700', color: Colors.text },
   itemQtyPrice: { fontSize: 10, color: Colors.textLight, marginTop: 2 },
-  itemTotal: { fontSize: 13, fontWeight: "800", color: Colors.text },
+  itemTotal: { fontSize: 13, fontWeight: '800', color: Colors.text },
 
   sumRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 5,
   },
   sumLabel: { fontSize: 12, color: Colors.textMuted },
-  sumVal: { fontSize: 12, fontWeight: "600", color: Colors.text },
+  sumVal: { fontSize: 12, fontWeight: '600', color: Colors.text },
 
   totalBox: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.primaryLight,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginVertical: 6,
   },
-  totalLabel: { fontSize: 13, fontWeight: "800", color: Colors.primary },
+  totalLabel: { fontSize: 13, fontWeight: '800', color: Colors.primary },
   totalVal: {
     fontSize: 24,
-    fontWeight: "900",
+    fontWeight: '900',
     color: Colors.primary,
     letterSpacing: -0.5,
   },
 
   tunaiBox: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 12,
     marginBottom: 4,
@@ -989,27 +998,27 @@ const s = StyleSheet.create({
     marginTop: 4,
     marginBottom: 0,
   },
-  kembalianLabel: { fontSize: 13, fontWeight: "700", color: Colors.success },
-  kembalianVal: { fontSize: 15, fontWeight: "900", color: Colors.success },
+  kembalianLabel: { fontSize: 13, fontWeight: '700', color: Colors.success },
+  kembalianVal: { fontSize: 15, fontWeight: '900', color: Colors.success },
 
   footerTxt: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: '700',
     color: Colors.primary,
     marginBottom: 4,
   },
   footerSub: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 11,
     color: Colors.textLight,
     marginBottom: 16,
   },
 
-  barcodeWrap: { alignItems: "center", marginTop: 8, marginBottom: 4 },
+  barcodeWrap: { alignItems: 'center', marginTop: 8, marginBottom: 4 },
   barcodeLines: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 52,
     gap: 0,
   },
@@ -1019,39 +1028,39 @@ const s = StyleSheet.create({
     color: Colors.textLight,
     letterSpacing: 2,
     marginTop: 4,
-    fontFamily: "monospace",
+    fontFamily: 'monospace',
   },
 
   poweredBy: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 9,
     color: Colors.textDisabled,
     marginTop: 12,
     marginBottom: 4,
   },
 
-  actions: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  actions: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   actionBtn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 14,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  actionBtnTxt: { fontSize: 13, fontWeight: "700", color: Colors.primary },
+  actionBtnTxt: { fontSize: 13, fontWeight: '700', color: Colors.primary },
   newTrxBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: Colors.primary,
     borderRadius: 14,
     padding: 16,
   },
-  newTrxBtnTxt: { fontSize: 14, fontWeight: "800", color: "#fff" },
+  newTrxBtnTxt: { fontSize: 14, fontWeight: '800', color: '#fff' },
 });
