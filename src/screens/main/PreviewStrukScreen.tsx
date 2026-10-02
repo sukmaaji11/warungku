@@ -81,19 +81,25 @@ export default function PreviewStrukScreen({ navigation }: any) {
                 resizeMode="contain"
               />
             ) : null}
-            <Text style={s.storeName}>NAMA TOKO</Text>
-            <Text style={s.storeInfo}>Jl. Contoh No. 123</Text>
-            <Text style={s.storeInfo}>08123456789</Text>
+            <Text style={s.storeName}>{settings.nama_toko || 'Nama Toko'}</Text>
+
+            {!!settings.alamat && (
+              <Text style={s.storeInfo}>{settings.alamat}</Text>
+            )}
+
+            {!!settings.no_hp && (
+              <Text style={s.storeInfo}>{settings.no_hp}</Text>
+            )}
 
             <View style={s.divider} />
 
             <View style={s.row}>
-              <Text style={s.item}>Gold</Text>
+              <Text style={s.item}>Roti</Text>
               <Text style={s.item}>2 x 5.400</Text>
             </View>
 
             <View style={s.row}>
-              <Text style={s.item}>Silver</Text>
+              <Text style={s.item}>Kopi ABC Susu</Text>
               <Text style={s.item}>1 x 4.900</Text>
             </View>
 
@@ -105,8 +111,9 @@ export default function PreviewStrukScreen({ navigation }: any) {
             </View>
 
             <View style={s.divider} />
-
-            <Text style={s.footer}>Terima kasih telah berbelanja</Text>
+            <Text style={s.footer}>
+              {settings.footer_struk || 'Terima kasih telah berbelanja!'}
+            </Text>
           </View>
         </View>
       </ScrollView>

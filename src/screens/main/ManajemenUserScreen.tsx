@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -40,6 +42,8 @@ export default function ManajemenUserScreen({ navigation }: any) {
   const [ePinLama, setEPinLama] = useState('');
   const [ePinBaru, setEPinBaru] = useState('');
   const [eNama, setEName] = useState('');
+
+  const formScrollRef = useRef<ScrollView>(null);
 
   const load = useCallback(() => {
     setUsers(getAllUsers());
@@ -159,7 +163,7 @@ export default function ManajemenUserScreen({ navigation }: any) {
       <FlatList
         data={users}
         keyExtractor={(u) => u.id.toString()}
-        contentContainerStyle={s.list}
+        contentContainerStyle={{ paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={s.empty}>
@@ -265,147 +269,169 @@ export default function ManajemenUserScreen({ navigation }: any) {
             onPress={() => setShowAdd(false)}
             activeOpacity={1}
           />
-          <View style={m.sheet}>
-            <View style={m.handle} />
-            <View style={m.mHeader}>
-              <Text style={m.mTitle}>Tambah User Baru</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <Ionicons name="close" size={22} color={Colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={m.label}>Nama Lengkap</Text>
-              <TextInput
-                style={m.input}
-                value={fNama}
-                onChangeText={setFNama}
-                placeholder="Contoh: Budi Santoso"
-                placeholderTextColor={Colors.textDisabled}
-              />
-
-              <Text style={m.label}>Username</Text>
-              <TextInput
-                style={m.input}
-                value={fUsername}
-                onChangeText={setFUsername}
-                placeholder="contoh: budi"
-                placeholderTextColor={Colors.textDisabled}
-                autoCapitalize="none"
-              />
-
-              <Text style={m.label}>Role</Text>
-              <View style={m.roleRow}>
-                {(['kasir', 'owner'] as UserRole[]).map((r) => {
-                  const ri = ROLE_INFO[r];
-                  return (
-                    <TouchableOpacity
-                      key={r}
-                      style={[
-                        m.roleChip,
-                        fRole === r && {
-                          backgroundColor: ri.color,
-                          borderColor: ri.color,
-                        },
-                      ]}
-                      onPress={() => setFRole(r)}
-                    >
-                      <Ionicons
-                        name={ri.icon}
-                        size={16}
-                        color={fRole === r ? '#fff' : ri.color}
-                      />
-                      <Text
-                        style={[
-                          m.roleChipTxt,
-                          fRole === r && { color: '#fff' },
-                        ]}
-                      >
-                        {ri.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={m.keyboardView}
+          >
+            <View style={m.sheet}>
+              <View style={m.handle} />
+              <View style={m.mHeader}>
+                <Text style={m.mTitle}>Tambah User Baru</Text>
+                <TouchableOpacity onPress={() => setShowAdd(false)}>
+                  <Ionicons name="close" size={22} color={Colors.textMuted} />
+                </TouchableOpacity>
               </View>
 
-              <View style={m.roleInfo}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={14}
-                  color={Colors.info}
-                />
-                <Text style={m.roleInfoTxt}>
-                  {fRole === 'kasir'
-                    ? 'Kasir: hanya bisa akses menu Kasir dan melihat struk.'
-                    : 'Owner: akses penuh semua fitur, termasuk produk, laporan, dan pengaturan.'}
-                </Text>
-              </View>
-
-              {/* FIX: label & maxLength sesuai 6 digit */}
-              <Text style={m.label}>PIN (min. 6 digit)</Text>
-              <TextInput
-                style={m.input}
-                value={fPin}
-                onChangeText={setFPin}
-                placeholder="Masukkan 6 digit PIN"
-                keyboardType="number-pad"
-                maxLength={6} // ← tetap 6
-                secureTextEntry
-                placeholderTextColor={Colors.textDisabled}
-              />
-              {/* Preview dots */}
-              <View style={m.pinDots}>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <View
-                    key={i}
-                    style={[m.pinDot, fPin.length > i && m.pinDotFilled]}
-                  />
-                ))}
-              </View>
-
-              <Text style={m.label}>Konfirmasi PIN</Text>
-              <TextInput
-                style={[
-                  m.input,
-                  fPinConfirm.length === 6 &&
-                    fPin !== fPinConfirm && { borderColor: Colors.danger },
-                ]}
-                value={fPinConfirm}
-                onChangeText={setFPinConfirm}
-                placeholder="Ulangi 6 digit PIN"
-                keyboardType="number-pad"
-                maxLength={6}
-                secureTextEntry
-                placeholderTextColor={Colors.textDisabled}
-              />
-              {fPinConfirm.length === 6 && fPin !== fPinConfirm && (
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: Colors.danger,
-                    marginTop: -10,
-                    marginBottom: 10,
-                  }}
-                >
-                  PIN tidak cocok
-                </Text>
-              )}
-
-              <TouchableOpacity
-                style={[
-                  m.saveBtn,
-                  (fPin.length !== 6 || fPin !== fPinConfirm) && {
-                    opacity: 0.5,
-                  },
-                ]}
-                onPress={handleTambah}
-                disabled={fPin.length !== 6 || fPin !== fPinConfirm}
+              <ScrollView
+                ref={formScrollRef}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 140 }}
               >
-                <Ionicons name="person-add-outline" size={18} color="#fff" />
-                <Text style={m.saveBtnTxt}>Tambah User</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
+                <Text style={m.label}>Nama Lengkap</Text>
+                <TextInput
+                  style={m.input}
+                  value={fNama}
+                  onChangeText={setFNama}
+                  placeholder="Contoh: Budi Santoso"
+                  placeholderTextColor={Colors.textDisabled}
+                />
+
+                <Text style={m.label}>Username</Text>
+                <TextInput
+                  style={m.input}
+                  value={fUsername}
+                  onChangeText={setFUsername}
+                  placeholder="contoh: budi"
+                  placeholderTextColor={Colors.textDisabled}
+                  autoCapitalize="none"
+                />
+
+                <Text style={m.label}>Role</Text>
+                <View style={m.roleRow}>
+                  {(['kasir', 'owner'] as UserRole[]).map((r) => {
+                    const ri = ROLE_INFO[r];
+                    return (
+                      <TouchableOpacity
+                        key={r}
+                        style={[
+                          m.roleChip,
+                          fRole === r && {
+                            backgroundColor: ri.color,
+                            borderColor: ri.color,
+                          },
+                        ]}
+                        onPress={() => setFRole(r)}
+                      >
+                        <Ionicons
+                          name={ri.icon}
+                          size={16}
+                          color={fRole === r ? '#fff' : ri.color}
+                        />
+                        <Text
+                          style={[
+                            m.roleChipTxt,
+                            fRole === r && { color: '#fff' },
+                          ]}
+                        >
+                          {ri.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={m.roleInfo}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={14}
+                    color={Colors.info}
+                  />
+                  <Text style={m.roleInfoTxt}>
+                    {fRole === 'kasir'
+                      ? 'Kasir: hanya bisa akses menu Kasir dan melihat struk.'
+                      : 'Owner: akses penuh semua fitur, termasuk produk, laporan, dan pengaturan.'}
+                  </Text>
+                </View>
+
+                {/* FIX: label & maxLength sesuai 6 digit */}
+                <Text style={m.label}>PIN (min. 6 digit)</Text>
+                <TextInput
+                  style={m.input}
+                  value={fPin}
+                  onChangeText={setFPin}
+                  placeholder="Masukkan 6 digit PIN"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  secureTextEntry
+                  placeholderTextColor={Colors.textDisabled}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      formScrollRef.current?.scrollTo({
+                        y: 180,
+                        animated: true,
+                      });
+                    }, 400);
+                  }}
+                />
+                {/* Preview dots */}
+                <View style={m.pinDots}>
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <View
+                      key={i}
+                      style={[m.pinDot, fPin.length > i && m.pinDotFilled]}
+                    />
+                  ))}
+                </View>
+
+                <Text style={m.label}>Konfirmasi PIN</Text>
+                <TextInput
+                  style={m.input}
+                  value={fPinConfirm}
+                  onChangeText={setFPinConfirm}
+                  placeholder="Ulangi 6 digit PIN"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  secureTextEntry
+                  placeholderTextColor={Colors.textDisabled}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      formScrollRef.current?.scrollTo({
+                        y: 240,
+                        animated: true,
+                      });
+                    }, 400);
+                  }}
+                />
+                {fPinConfirm.length === 6 && fPin !== fPinConfirm && (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: Colors.danger,
+                      marginTop: -10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    PIN tidak cocok
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    m.saveBtn,
+                    (fPin.length !== 6 || fPin !== fPinConfirm) && {
+                      opacity: 0.5,
+                    },
+                  ]}
+                  onPress={handleTambah}
+                  disabled={fPin.length !== 6 || fPin !== fPinConfirm}
+                >
+                  <Ionicons name="person-add-outline" size={18} color="#fff" />
+                  <Text style={m.saveBtnTxt}>Tambah User</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -672,6 +698,11 @@ const m = StyleSheet.create({
     padding: 16,
     marginTop: 4,
     marginBottom: 24,
+  },
+  keyboardView: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
   },
   saveBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });
