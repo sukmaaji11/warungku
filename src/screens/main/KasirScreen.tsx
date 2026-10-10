@@ -415,7 +415,7 @@ function CartPanel({
     //<View style={[cart.panel, isSplit ? { width: cartWidth } : { flex: 1 }]}>
     <KeyboardAvoidingView
       style={[cart.panel, isSplit ? { width: cartWidth } : { flex: 1 }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       {/* ── BARU: badge GROSIR di cart jika harga yang dipakai adalah harga grosir ── */}
       <View style={cart.header}>
@@ -635,7 +635,7 @@ function TambahPelangganModal({
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View
           style={{

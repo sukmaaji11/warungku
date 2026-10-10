@@ -7,15 +7,20 @@ import {
   ScrollView,
   Switch,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { getPengaturan, setPengaturan } from '../../db/produkRepo';
+import { printStruk } from '../../utils/printer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PreviewStrukScreen({ navigation }: any) {
   const [cetakLogo, setCetakLogo] = useState(true);
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     const data = getPengaturan();
@@ -29,6 +34,70 @@ export default function PreviewStrukScreen({ navigation }: any) {
 
     setCetakLogo(value);
     setPengaturan('cetak_logo_struk', value ? '1' : '0');
+  };
+
+  const handleTestPrint = async () => {
+    setTesting(true);
+
+    try {
+      const printerAddress = await AsyncStorage.getItem(
+        'kasirku_printer_address',
+      );
+
+      if (!printerAddress) {
+        Alert.alert(
+          'Printer Belum Terhubung',
+          'Silakan hubungkan printer terlebih dahulu di menu Printer Bluetooth.',
+        );
+        return;
+      }
+
+      const s = getPengaturan();
+
+      await printStruk(
+        {
+          namaToko: s.nama_toko || 'Kasir WarungKu',
+          alamat: s.alamat,
+          noHp: s.no_hp,
+          logo: s.logo_toko,
+          cetakLogo: s.cetak_logo_struk !== '0',
+          footer: s.footer_struk || 'Terima kasih!',
+          noTrx: 'TEST-001',
+          waktu: new Date().toISOString(),
+          kasir: 'Test Print',
+          metode: 'tunai',
+          items: [
+            {
+              nama_produk: 'Roti',
+              qty: 2,
+              harga: 5400,
+              subtotal: 10800,
+            },
+            {
+              nama_produk: 'Kopi ABC Susu',
+              qty: 1,
+              harga: 4900,
+              subtotal: 4900,
+            },
+          ],
+          subtotal: 15700,
+          diskon: 0,
+          total: 15700,
+          bayar: 20000,
+          kembalian: 4300,
+        },
+        printerAddress,
+      );
+
+      Alert.alert('✅ Berhasil!', 'Struk test berhasil dicetak.');
+    } catch (e: any) {
+      Alert.alert(
+        'Gagal Print',
+        e?.message || 'Pastikan printer sudah terhubung.',
+      );
+    } finally {
+      setTesting(false);
+    }
   };
 
   return (
@@ -116,6 +185,21 @@ export default function PreviewStrukScreen({ navigation }: any) {
             </Text>
           </View>
         </View>
+        <TouchableOpacity
+          style={[s.testPrintBtn, testing && { opacity: 0.6 }]}
+          onPress={handleTestPrint}
+          disabled={testing}
+        >
+          {testing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="print-outline" size={18} color="#fff" />
+          )}
+
+          <Text style={s.testPrintText}>
+            {testing ? 'Mencetak...' : 'Test Print'}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -285,5 +369,21 @@ const s = StyleSheet.create({
     height: 60,
     alignSelf: 'center',
     marginBottom: 8,
+  },
+  testPrintBtn: {
+    marginTop: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  testPrintText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

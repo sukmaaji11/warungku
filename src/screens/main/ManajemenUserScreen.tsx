@@ -543,6 +543,8 @@ const s = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.border,
     gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
   },
   userCardInactive: { opacity: 0.6 },
   avatar: {

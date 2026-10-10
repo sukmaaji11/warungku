@@ -188,11 +188,14 @@ export default function PrinterScreen({ navigation }: any) {
     setTesting(true);
     try {
       const s = getPengaturan();
+      const cetakLogo = s.cetak_logo_struk !== '0';
       await printStruk(
         {
           namaToko: s.nama_toko || 'Kasir WarungKu',
           alamat: s.alamat,
           noHp: s.no_hp,
+          logo: s.logo_toko,
+          cetakLogo,
           footer: s.footer_struk || 'Terima kasih!',
           noTrx: 'TEST-001',
           waktu: new Date().toISOString(),

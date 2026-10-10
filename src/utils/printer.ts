@@ -261,9 +261,20 @@ export async function printStruk(
       }
     }
 
-    await BEP.printText(p.namaToko + '\n\r', { widthtimes: 1, heigthtimes: 1 });
-    if (p.alamat) await BEP.printText(p.alamat + '\n\r', {});
-    if (p.noHp) await BEP.printText(p.noHp + '\n\r', {});
+    await BEP.printerAlign(BEP.ALIGN.CENTER);
+
+    await BEP.printText(p.namaToko + '\n\r', {
+      widthtimes: 1,
+      heigthtimes: 1,
+    });
+
+    if (p.alamat) {
+      await BEP.printText(p.alamat + '\n\r', {});
+    }
+
+    if (p.noHp) {
+      await BEP.printText(p.noHp + '\n\r', {});
+    }
     await BEP.printText('--------------------------------\n\r', {});
 
     // Info transaksi — left
