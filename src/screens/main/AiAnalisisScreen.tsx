@@ -40,6 +40,11 @@ interface Insight {
   title: string;
   desc: string;
   icon: keyof typeof Ionicons.glyphMap;
+  products?: {
+    nama: string;
+    stok?: number;
+    satuan?: string;
+  }[];
 }
 
 const TYPE_STYLE = {

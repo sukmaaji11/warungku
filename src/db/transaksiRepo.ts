@@ -9,6 +9,9 @@ export interface TrxItem {
   harga_modal?: number;
   qty: number;
   subtotal: number;
+  diskon_tipe?: 'persen' | 'nominal' | null;
+  diskon_nilai?: number;
+  diskon_nominal?: number;
 }
 
 export interface Transaksi {
@@ -75,8 +78,19 @@ export function simpanTransaksi(
   items.forEach((item) => {
     db.runSync(
       `INSERT INTO transaksi_item
-         (transaksi_id,produk_id,nama_produk,harga,qty,subtotal,harga_modal)
-       VALUES (?,?,?,?,?,?,?)`,
+    (
+      transaksi_id,
+      produk_id,
+      nama_produk,
+      harga,
+      qty,
+      subtotal,
+      harga_modal,
+      diskon_tipe,
+      diskon_nilai,
+      diskon_nominal
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         trxId,
         item.produk_id,
@@ -85,8 +99,12 @@ export function simpanTransaksi(
         item.qty,
         item.subtotal,
         item.harga_modal ?? 0,
+        item.diskon_tipe ?? null,
+        item.diskon_nilai ?? 0,
+        item.diskon_nominal ?? 0,
       ],
     );
+
     updateStok(item.produk_id, -item.qty);
     try {
       updateKonsinyasiDariTransaksi(item.produk_id, item.qty);
@@ -160,7 +178,7 @@ export function getTerlaris(
   if (periode === 'tahun')
     filter = "strftime('%Y',t.waktu)=strftime('%Y','now','localtime')";
   return getDB().getAllSync(
-    'SELECT ti.nama_produk, SUM(ti.qty) as qty, SUM(ti.subtotal) as omset FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id=t.id WHERE ' +
+    'SELECT ti.nama_produk, SUM(ti.qty) as qty, SUM(ti.subtotal - COALESCE(ti.diskon_nominal, 0)) as omset FROM transaksi_item ti JOIN transaksi t ON ti.transaksi_id=t.id WHERE ' +
       filter +
       ' GROUP BY ti.nama_produk ORDER BY qty DESC LIMIT ?',
     [limit],
@@ -175,7 +193,7 @@ export function getTerlarisByRange(dari: string, sampai: string): any[] {
       `SELECT
         ti.nama_produk,
         SUM(ti.qty) as qty,
-        SUM(ti.subtotal) as omset
+        SUM(ti.subtotal - COALESCE(ti.diskon_nominal, 0)) as omset
        FROM transaksi_item ti
        JOIN transaksi t ON ti.transaksi_id = t.id
        WHERE date(t.waktu) BETWEEN ? AND ?
@@ -306,7 +324,7 @@ export function getProfitByMetode(
   try {
     let query = `SELECT t.metode_bayar,
         COALESCE(SUM(
-          (SELECT SUM(ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)))
+          (SELECT SUM(ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)) - COALESCE(ti.diskon_nominal, 0)))
            FROM transaksi_item ti
            LEFT JOIN produk p ON p.id = ti.produk_id
            WHERE ti.transaksi_id = t.id)
@@ -336,35 +354,54 @@ export function getRingkasanByRange(
   kasir?: string,
 ) {
   const db = getDB();
+
   try {
     const params: any[] = [dari, sampai];
     let kasirWhere = '';
+
     if (kasir) {
       kasirWhere = ` AND t.kasir = ?`;
       params.push(kasir);
     }
+
     const row = db.getFirstSync<any>(
       `SELECT
-    COUNT(*) as trx,
-    COALESCE(SUM(total),0) as omset,
-    COALESCE(SUM(CASE WHEN diskon_nominal > 0 THEN diskon_nominal ELSE diskon END),0) as diskon,
-    COALESCE(SUM(
-      (SELECT SUM(ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)))
-       FROM transaksi_item ti
-       LEFT JOIN produk p ON p.id=ti.produk_id
-       WHERE ti.transaksi_id=t.id)
-    ),0) as profit
-  FROM transaksi t
-  WHERE date(t.waktu) BETWEEN ? AND ?${kasirWhere}`,
+        COUNT(*) as trx,
+        COALESCE(SUM(t.total), 0) as omset,
+
+      COALESCE(SUM(COALESCE(t.diskon, 0)), 0)
+      +
+      COALESCE(SUM((
+        SELECT SUM(COALESCE(ti.diskon_nominal, 0))
+        FROM transaksi_item ti
+        WHERE ti.transaksi_id = t.id
+      )), 0) AS diskon,
+
+      COALESCE(SUM((
+        SELECT SUM(
+          ti.qty * (
+            ti.harga -
+            COALESCE(ti.harga_modal, p.harga_modal, 0)
+          ) - COALESCE(ti.diskon_nominal, 0)
+        )
+        FROM transaksi_item ti
+        LEFT JOIN produk p ON p.id = ti.produk_id
+        WHERE ti.transaksi_id = t.id
+      )), 0) as profit
+
+      FROM transaksi t
+      WHERE date(t.waktu) BETWEEN ? AND ?${kasirWhere}`,
       params,
     );
-    // Hitung qty terpisah karena butuh JOIN ke transaksi_item
+
     const qtyParams: any[] = [dari, sampai];
     let qtyKasirWhere = '';
+
     if (kasir) {
       qtyKasirWhere = ` AND t.kasir = ?`;
       qtyParams.push(kasir);
     }
+
     const qtyRow = db.getFirstSync<any>(
       `SELECT COALESCE(SUM(ti.qty), 0) as qty
        FROM transaksi_item ti
@@ -372,6 +409,7 @@ export function getRingkasanByRange(
        WHERE date(t.waktu) BETWEEN ? AND ?${qtyKasirWhere}`,
       qtyParams,
     );
+
     return {
       trx: row?.trx || 0,
       omset: row?.omset || 0,
@@ -379,7 +417,15 @@ export function getRingkasanByRange(
       profit: row?.profit || 0,
       qty: qtyRow?.qty || 0,
     };
-  } catch {
-    return { trx: 0, omset: 0, diskon: 0, profit: 0, qty: 0 };
+  } catch (error) {
+    console.error('Gagal mengambil ringkasan analisis:', error);
+
+    return {
+      trx: 0,
+      omset: 0,
+      diskon: 0,
+      profit: 0,
+      qty: 0,
+    };
   }
 }

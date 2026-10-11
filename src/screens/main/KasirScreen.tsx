@@ -317,6 +317,7 @@ interface CartPanelProps {
   selectedDiskon: any | null;
   onHapusDiskon: () => void;
   onHold: () => void;
+  onDiskonItem: (item: any) => void;
 }
 
 function CartItemQty({
@@ -408,6 +409,7 @@ function CartPanel({
   selectedDiskon,
   onHapusDiskon,
   onHold,
+  onDiskonItem,
 }: CartPanelProps) {
   const safeInsets = useSafeAreaInsets();
   const extraBottom = isSplit ? safeInsets.bottom : 0;
@@ -452,46 +454,154 @@ function CartPanel({
             { paddingBottom: extraBottom + 8 },
           ]}
           showsVerticalScrollIndicator={true}
-          renderItem={({ item }) => (
-            <View style={cart.item}>
-              <View style={cart.itemImg}>
-                {item.produk.gambar ? (
-                  <Image
-                    source={{ uri: resolveGambarUri(item.produk.gambar)! }}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                ) : (
-                  <Text style={{ fontSize: 16 }}>
-                    {getKategoriEmoji(item.produk.kategori_nama)}
-                  </Text>
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                    marginBottom: 2,
-                  }}
-                >
-                  <Text style={cart.itemNama} numberOfLines={1}>
-                    {item.produk.nama}
-                  </Text>
-                  {/* ── BARU: badge GROSIR di cart jika harga yang dipakai adalah harga grosir ── */}
-                  {item.isGrosir && (
-                    <View style={cart.grosirBadge}>
-                      <Text style={cart.grosirBadgeTxt}>GROSIR</Text>
-                    </View>
+          renderItem={({ item }) => {
+            const diskonProduk = item.diskonNominal ?? 0;
+            const hargaBersih = Math.max(0, item.subtotal - diskonProduk);
+
+            return (
+              <View
+                style={[
+                  cart.item,
+                  {
+                    alignItems: 'flex-start',
+                    paddingVertical: 12,
+                  },
+                ]}
+              >
+                {/* Gambar produk */}
+                <View style={cart.itemImg}>
+                  {item.produk.gambar ? (
+                    <Image
+                      source={{ uri: resolveGambarUri(item.produk.gambar)! }}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 16 }}>
+                      {getKategoriEmoji(item.produk.kategori_nama)}
+                    </Text>
                   )}
                 </View>
-                <Text style={cart.itemHarga}>
-                  {formatRupiah(item.produk.harga)}
-                </Text>
-                <CartItemQty item={item} updateQty={updateQty} />
+                {/* Informasi produk */}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 4,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text style={cart.itemNama} numberOfLines={2}>
+                      {item.produk.nama}
+                    </Text>
+
+                    {item.isGrosir && (
+                      <View style={cart.grosirBadge}>
+                        <Text style={cart.grosirBadgeTxt}>GROSIR</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={{ fontSize: 11, color: Colors.textMuted }}>
+                    {formatRupiah(item.produk.harga)} × {item.qty}
+                  </Text>
+
+                  {diskonProduk > 0 && (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '700',
+                        color: Colors.danger,
+                        marginTop: 3,
+                      }}
+                    >
+                      Diskon −{formatRupiah(diskonProduk)}
+                    </Text>
+                  )}
+
+                  <View style={{ marginTop: 7, alignSelf: 'flex-start' }}>
+                    <CartItemQty item={item} updateQty={updateQty} />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => onDiskonItem(item)}
+                    style={{
+                      alignSelf: 'flex-start',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 5,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: Colors.border,
+                      marginTop: 8,
+                    }}
+                  >
+                    <Ionicons
+                      name={
+                        diskonProduk > 0 ? 'create-outline' : 'pricetag-outline'
+                      }
+                      size={13}
+                      color={Colors.primary}
+                    />
+
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: Colors.primary,
+                      }}
+                    >
+                      {diskonProduk > 0 ? 'Ubah diskon' : '+ Tambah diskon'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Harga bersih dan harga asli di sisi kanan */}
+                <View
+                  style={{
+                    alignItems: 'flex-end',
+                    justifyContent: 'flex-start',
+                    marginLeft: 8,
+                    maxWidth: '42%',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '800',
+                      color: diskonProduk > 0 ? Colors.danger : Colors.text,
+                      textAlign: 'right',
+                    }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {formatRupiah(hargaBersih)}
+                  </Text>
+
+                  {diskonProduk > 0 && (
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: Colors.textMuted,
+                        textDecorationLine: 'line-through',
+                        marginTop: 3,
+                        textAlign: 'right',
+                      }}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {formatRupiah(item.subtotal)}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
       )}
       <View style={[cart.footer, { paddingBottom: extraBottom + 10 }]}>
@@ -783,6 +893,7 @@ export default function KasirScreen({ navigation }: any) {
     holdOrder,
     recallOrder,
     deleteHeldOrder,
+    setDiskonItem,
   } = useCart();
 
   const [produkList, setProdukList] = useState<Produk[]>([]);
@@ -808,6 +919,14 @@ export default function KasirScreen({ navigation }: any) {
   const [showPilihPelanggan, setShowPilihPelanggan] = useState(false);
   const [searchPelanggan, setSearchPelanggan] = useState('');
   const [showTambahPelanggan, setShowTambahPelanggan] = useState(false);
+
+  // ── BARU: diskonList untuk modal pilih diskon ──
+  const [showDiskonItemModal, setShowDiskonItemModal] = useState(false);
+  const [selectedItemDiskon, setSelectedItemDiskon] = useState<any>(null);
+  const [diskonItemTipe, setDiskonItemTipe] = useState<'persen' | 'nominal'>(
+    'persen',
+  );
+  const [diskonItemNilai, setDiskonItemNilai] = useState('');
 
   const [diskonList, setDiskonList] = useState<any[]>([]);
   const [showPilihDiskon, setShowPilihDiskon] = useState(false);
@@ -977,6 +1096,9 @@ export default function KasirScreen({ navigation }: any) {
           harga_modal: i.produk.harga_modal ?? 0,
           qty: i.qty,
           subtotal: i.subtotal,
+          diskon_tipe: i.diskonTipe ?? null,
+          diskon_nilai: i.diskonNilai ?? 0,
+          diskon_nominal: i.diskonNominal ?? 0,
         })),
         sub,
         diskon,
@@ -996,6 +1118,9 @@ export default function KasirScreen({ navigation }: any) {
           harga: i.produk.harga,
           qty: i.qty,
           subtotal: i.subtotal,
+          diskon_tipe: i.diskonTipe ?? null,
+          diskon_nilai: i.diskonNilai ?? 0,
+          diskon_nominal: i.diskonNominal ?? 0,
         })),
         subtotal: sub,
         diskon,
@@ -1073,6 +1198,14 @@ export default function KasirScreen({ navigation }: any) {
     selectedDiskon,
     onHapusDiskon: hapusDiskon,
     onHold: () => setShowHoldInput(true),
+    onDiskonItem: (item) => {
+      setSelectedItemDiskon(item);
+      setDiskonItemTipe(item.diskonTipe ?? 'persen');
+      setDiskonItemNilai(
+        item.diskonNilai != null ? String(item.diskonNilai) : '',
+      );
+      setShowDiskonItemModal(true);
+    },
   };
 
   const renderProduk = useCallback(
@@ -1881,7 +2014,236 @@ export default function KasirScreen({ navigation }: any) {
           </ScrollView>
         </View>
       </Modal>
+      {/* Modal Diskon Produk */}
+      <Modal
+        visible={showDiskonItemModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDiskonItemModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              padding: 20,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 20,
+                padding: 20,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: '800',
+                  color: Colors.text,
+                }}
+              >
+                Diskon Produk
+              </Text>
 
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: Colors.textMuted,
+                  marginTop: 6,
+                  marginBottom: 16,
+                }}
+              >
+                {selectedItemDiskon?.produk?.nama ?? 'Produk'}
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: Colors.textMuted,
+                  marginBottom: 8,
+                }}
+              >
+                JENIS DISKON
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {[
+                  { label: 'Persentase (%)', value: 'persen' },
+                  { label: 'Nominal (Rp)', value: 'nominal' },
+                ].map((option) => {
+                  const active = diskonItemTipe === option.value;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() =>
+                        setDiskonItemTipe(option.value as 'persen' | 'nominal')
+                      }
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        backgroundColor: active
+                          ? Colors.primaryLight
+                          : Colors.background,
+                        borderWidth: 1,
+                        borderColor: active ? Colors.primary : Colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '700',
+                          color: active ? Colors.primary : Colors.textMuted,
+                        }}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: Colors.textMuted,
+                  marginTop: 16,
+                  marginBottom: 8,
+                }}
+              >
+                NILAI DISKON PER UNIT
+              </Text>
+
+              <TextInput
+                value={diskonItemNilai}
+                onChangeText={(text) =>
+                  setDiskonItemNilai(text.replace(/\D/g, ''))
+                }
+                keyboardType="number-pad"
+                placeholder={
+                  diskonItemTipe === 'persen' ? 'Contoh: 10' : 'Contoh: 2000'
+                }
+                placeholderTextColor={Colors.textDisabled}
+                style={{
+                  backgroundColor: Colors.background,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: Colors.border,
+                  padding: 14,
+                  fontSize: 16,
+                  color: Colors.text,
+                }}
+              />
+
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: Colors.textMuted,
+                  marginTop: 8,
+                }}
+              >
+                Harga per unit:{' '}
+                {formatRupiah(selectedItemDiskon?.produk?.harga ?? 0)}
+                {'\n'}
+                Jumlah: {selectedItemDiskon?.qty ?? 0} unit
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 20 }}>
+                <TouchableOpacity
+                  onPress={() => setShowDiskonItemModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: 13,
+                    borderRadius: 12,
+                    backgroundColor: Colors.background,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontWeight: '700', color: Colors.textMuted }}>
+                    Batal
+                  </Text>
+                </TouchableOpacity>
+
+                {(selectedItemDiskon?.diskonNominal ?? 0) > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (selectedItemDiskon) {
+                        setDiskonItem(
+                          selectedItemDiskon.produk.id,
+                          diskonItemTipe,
+                          0,
+                        );
+                      }
+                      setShowDiskonItemModal(false);
+                    }}
+                    style={{
+                      padding: 13,
+                      borderRadius: 12,
+                      backgroundColor: Colors.dangerLight,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ fontWeight: '700', color: Colors.danger }}>
+                      Hapus
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => {
+                    if (!selectedItemDiskon) return;
+
+                    const nilai = Number(diskonItemNilai) || 0;
+
+                    if (nilai <= 0) {
+                      Alert.alert(
+                        'Nilai diskon belum valid',
+                        'Masukkan nilai diskon lebih dari 0.',
+                      );
+                      return;
+                    }
+
+                    if (diskonItemTipe === 'persen' && nilai > 100) {
+                      Alert.alert(
+                        'Persentase tidak valid',
+                        'Diskon persentase maksimal 100%.',
+                      );
+                      return;
+                    }
+
+                    setDiskonItem(
+                      selectedItemDiskon.produk.id,
+                      diskonItemTipe,
+                      nilai,
+                    );
+                    setShowDiskonItemModal(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: 13,
+                    borderRadius: 12,
+                    backgroundColor: Colors.primary,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>
+                    Terapkan
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       {/* Modal Pilih Diskon */}
       <Modal visible={showPilihDiskon} transparent animationType="slide">
         <SafeAreaView style={{ flex: 1, justifyContent: 'flex-end' }}>

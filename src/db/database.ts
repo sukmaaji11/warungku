@@ -67,13 +67,17 @@ export async function initDB(): Promise<void> {
     );
 
     CREATE TABLE IF NOT EXISTS transaksi_item (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      transaksi_id INTEGER NOT NULL,
-      produk_id    INTEGER,
-      nama_produk  TEXT NOT NULL,
-      harga        INTEGER NOT NULL,
-      qty          INTEGER NOT NULL,
-      subtotal     INTEGER NOT NULL
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      transaksi_id    INTEGER NOT NULL,
+      produk_id       INTEGER,
+      nama_produk     TEXT NOT NULL,
+      harga           INTEGER NOT NULL,
+      qty             INTEGER NOT NULL,
+      subtotal        INTEGER NOT NULL,
+      harga_modal     INTEGER DEFAULT 0,
+      diskon_tipe     TEXT DEFAULT NULL,
+      diskon_nilai    INTEGER DEFAULT 0,
+      diskon_nominal  INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS lisensi (
@@ -169,6 +173,9 @@ export async function initDB(): Promise<void> {
       )`,
 
     'ALTER TABLE transaksi_item ADD COLUMN harga_modal INTEGER DEFAULT 0',
+    'ALTER TABLE transaksi_item ADD COLUMN diskon_tipe TEXT DEFAULT NULL',
+    'ALTER TABLE transaksi_item ADD COLUMN diskon_nilai INTEGER DEFAULT 0',
+    'ALTER TABLE transaksi_item ADD COLUMN diskon_nominal INTEGER DEFAULT 0',
 
     // KONSINYASI
     'ALTER TABLE produk ADD COLUMN konsinyor_id INTEGER DEFAULT NULL',
@@ -183,45 +190,45 @@ export async function initDB(): Promise<void> {
   ];
 
   migrations.forEach((sql) => {
-  try {
-    db.execSync(sql);
-  } catch {
-    /* kolom sudah ada */
-  }
-});
+    try {
+      db.execSync(sql);
+    } catch {
+      /* kolom sudah ada */
+    }
+  });
 
-// SEED SATUAN PRODUK DEFAULT
-const satuanDefault = [
-  "pcs",
-  "kg",
-  "liter",
-  "bungkus",
-  "botol",
-  "kotak",
-  "sachet",
-];
+  // SEED SATUAN PRODUK DEFAULT
+  const satuanDefault = [
+    'pcs',
+    'kg',
+    'liter',
+    'bungkus',
+    'botol',
+    'kotak',
+    'sachet',
+  ];
 
-for (const nama of satuanDefault) {
-  try {
-    db.runSync(
-      `INSERT OR IGNORE INTO satuan_produk (nama, aktif)
+  for (const nama of satuanDefault) {
+    try {
+      db.runSync(
+        `INSERT OR IGNORE INTO satuan_produk (nama, aktif)
        VALUES (?, 1)`,
-      [nama]
-    );
-  } catch (e) {
-    console.warn("[DB] seed satuan error:", e);
+        [nama],
+      );
+    } catch (e) {
+      console.warn('[DB] seed satuan error:', e);
+    }
   }
-}
 
-try {
-  db.execSync(`
+  try {
+    db.execSync(`
     UPDATE transaksi
     SET diskon_nominal = diskon
     WHERE diskon > 0 AND diskon_nominal = 0
   `);
-} catch (e) {
-  console.warn('[DB] migrasi diskon_nominal error:', e);
-}
+  } catch (e) {
+    console.warn('[DB] migrasi diskon_nominal error:', e);
+  }
 
   // ── Migrasi owner dari PIN lama ───────────────────────────────────────────
   try {

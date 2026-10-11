@@ -205,6 +205,9 @@ export interface StrukParams {
     qty: number;
     harga: number;
     subtotal: number;
+    diskon_tipe?: 'persen' | 'nominal' | null;
+    diskon_nilai?: number;
+    diskon_nominal?: number;
   }[];
   subtotal: number;
   diskon: number;
@@ -287,24 +290,49 @@ export async function printStruk(
     await BEP.printText('--------------------------------\n\r', {});
 
     // Items — pakai printText biasa (printColumn sering bermasalah)
+    // Items
     for (const item of p.items) {
-      // Nama produk
       await BEP.printerAlign(BEP.ALIGN.LEFT);
 
+      // Nama produk
       await BEP.printText(`${item.nama_produk}\n\r`, {});
 
-      // Detail qty x harga = subtotal
+      // Harga satuan x qty = subtotal sebelum diskon
       const left = `${item.qty} x Rp${item.harga.toLocaleString('id-ID')}`;
       const right = `Rp${item.subtotal.toLocaleString('id-ID')}`;
-
-      const detail = left.padEnd(30 - right.length, ' ') + right;
+      const detail = left.padEnd(Math.max(0, 30 - right.length), ' ') + right;
 
       await BEP.printText(detail + '\n\r', {});
 
-      // Spasi kecil biar lega
+      // Diskon produk
+      const diskonItem = item.diskon_nominal ?? 0;
+
+      if (diskonItem > 0) {
+        const detailDiskon = `Diskon item`;
+        const nominalDiskon = `-Rp${diskonItem.toLocaleString('id-ID')}`;
+
+        await BEP.printText(
+          detailDiskon.padEnd(Math.max(0, 30 - nominalDiskon.length), ' ') +
+            nominalDiskon +
+            '\n\r',
+          {},
+        );
+
+        // Subtotal bersih setelah diskon item
+        const bersih = Math.max(0, item.subtotal - diskonItem);
+        const labelBersih = 'Subtotal bersih';
+        const nominalBersih = `Rp${bersih.toLocaleString('id-ID')}`;
+
+        await BEP.printText(
+          labelBersih.padEnd(Math.max(0, 30 - nominalBersih.length), ' ') +
+            nominalBersih +
+            '\n\r',
+          {},
+        );
+      }
+
       await BEP.printText('\n\r', {});
     }
-
     await BEP.printText('--------------------------------\n\r', {});
 
     // Summary

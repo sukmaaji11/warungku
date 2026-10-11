@@ -48,6 +48,17 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const NAVY = Colors.primary;
 
+function hitungTotalDiskonTransaksi(trxId: number, diskonTransaksi: number) {
+  const items = getTrxDetail(trxId);
+
+  const diskonProduk = items.reduce(
+    (sum: number, item: any) => sum + (item.diskon_nominal || 0),
+    0,
+  );
+
+  return diskonProduk + diskonTransaksi;
+}
+
 function getMetodeColor(metode: string) {
   switch (metode) {
     case 'tunai':
@@ -69,10 +80,12 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
   React.useEffect(() => {
     setItems(getTrxDetail(trxId));
   }, [trxId]);
-  const profit = items.reduce(
-    (s, i) => s + i.qty * (i.harga - (i.harga_modal || 0)),
-    0,
-  );
+  const profit = items.reduce((s, i) => {
+    const hargaModal = i.harga_modal || 0;
+    const diskonItem = i.diskon_nominal || 0;
+
+    return s + i.qty * (i.harga - hargaModal) - diskonItem;
+  }, 0);
   if (items.length === 0)
     return (
       <View style={{ alignItems: 'center', padding: 20 }}>
@@ -84,7 +97,12 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
   return (
     <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
       {items.map((item: any, i: number) => {
-        const itemProfit = item.qty * (item.harga - (item.harga_modal || 0));
+        const itemProfit =
+          item.qty * (item.harga - (item.harga_modal || 0)) -
+          (item.diskon_nominal || 0);
+
+        const subtotalBersih =
+          (item.subtotal || item.harga * item.qty) - (item.diskon_nominal || 0);
         return (
           <View key={i} style={dt.row}>
             <View style={{ flex: 1 }}>
@@ -92,11 +110,27 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
               <Text style={dt.sub}>
                 {item.qty}× {formatRupiah(item.harga)}
               </Text>
+
+              {(item.diskon_nominal || 0) > 0 && (
+                <Text
+                  style={{ fontSize: 11, color: Colors.danger, marginTop: 2 }}
+                >
+                  Diskon produk -{formatRupiah(item.diskon_nominal)}
+                </Text>
+              )}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={dt.subtotal}>{formatRupiah(item.subtotal)}</Text>
+              <Text style={dt.subtotal}>{formatRupiah(subtotalBersih)}</Text>
               {item.harga_modal > 0 && (
-                <Text style={dt.profit}>+{formatRupiah(itemProfit)}</Text>
+                <Text
+                  style={[
+                    dt.profit,
+                    { color: itemProfit < 0 ? Colors.danger : Colors.success },
+                  ]}
+                >
+                  {itemProfit > 0 ? '+' : itemProfit < 0 ? '-' : ''}
+                  {formatRupiah(Math.abs(itemProfit))}
+                </Text>
               )}
             </View>
           </View>
@@ -1068,6 +1102,23 @@ function PenjualanModal({
     Record<string, number>
   >({});
   const [selectedTrx, setSelectedTrx] = useState<any>(null);
+  const detailItems = selectedTrx
+    ? (getTrxDetail(selectedTrx.id) as any[])
+    : [];
+
+  const subtotalKotor = detailItems.reduce(
+    (sum, item) => sum + (item.subtotal || 0),
+    0,
+  );
+
+  const diskonProduk = detailItems.reduce(
+    (sum, item) => sum + (item.diskon_nominal || 0),
+    0,
+  );
+
+  const diskonTransaksi = selectedTrx ? selectedTrx.diskon || 0 : 0;
+
+  const totalDiskon = diskonProduk + diskonTransaksi;
   const [showPicker, setShowPicker] = useState<'dari' | 'sampai' | null>(null);
   const { currentUser } = useAuthStore();
   const kasirFilter =
@@ -1953,7 +2004,7 @@ function PenjualanModal({
                     }}
                   >
                     <Text style={{ fontSize: 13, color: Colors.textMuted }}>
-                      Subtotal
+                      Subtotal sebelum diskon
                     </Text>
                     <Text
                       style={{
@@ -1962,10 +2013,11 @@ function PenjualanModal({
                         color: Colors.text,
                       }}
                     >
-                      {formatRupiah(selectedTrx.subtotal)}
+                      {formatRupiah(subtotalKotor)}
                     </Text>
                   </View>
-                  {selectedTrx.diskon > 0 && (
+
+                  {totalDiskon > 0 && (
                     <View
                       style={{
                         flexDirection: 'row',
@@ -1973,7 +2025,7 @@ function PenjualanModal({
                       }}
                     >
                       <Text style={{ fontSize: 13, color: Colors.textMuted }}>
-                        Diskon
+                        Total Diskon
                       </Text>
                       <Text
                         style={{
@@ -1982,10 +2034,11 @@ function PenjualanModal({
                           color: Colors.danger,
                         }}
                       >
-                        -{formatRupiah(selectedTrx.diskon)}
+                        -{formatRupiah(totalDiskon)}
                       </Text>
                     </View>
                   )}
+
                   <View
                     style={{
                       flexDirection: 'row',
@@ -2195,25 +2248,58 @@ _Dikirim via Kasir WarungKu_`;
         kasirFilter,
       ) as any[];
       const wsTransaksi = XLSX.utils.json_to_sheet(
-        trxList.map((t: any) => ({
-          'No Transaksi': t.no_trx,
-          Tanggal: t.waktu?.slice(0, 10) || '',
-          Waktu: t.waktu?.slice(11, 16) || '',
-          'Metode Bayar': t.metode_bayar?.toUpperCase(),
-          Subtotal: t.subtotal,
-          Diskon: t.diskon || 0,
-          Total: t.total,
-          Bayar: t.bayar || 0,
-          Kembalian: t.kembalian || 0,
-          Kasir: t.kasir || 'Admin',
-        })),
+        trxList.map((t: any) => {
+          const items = getTrxDetail(t.id) as any[];
+
+          const subtotalKotor = items.reduce(
+            (sum, item) => sum + (item.subtotal || 0),
+            0,
+          );
+
+          const diskonProduk = items.reduce(
+            (sum, item) => sum + (item.diskon_nominal || 0),
+            0,
+          );
+
+          const diskonTransaksi = t.diskon || 0;
+
+          return {
+            'No Transaksi': t.no_trx,
+            Tanggal: t.waktu?.slice(0, 10) || '',
+            Waktu: t.waktu?.slice(11, 16) || '',
+            'Metode Bayar': t.metode_bayar?.toUpperCase(),
+            'Subtotal Sebelum Diskon': subtotalKotor,
+            'Diskon Produk': diskonProduk,
+            'Diskon Transaksi': diskonTransaksi,
+            'Total Diskon': diskonProduk + diskonTransaksi,
+            Total: t.total,
+            Bayar: t.bayar || 0,
+            Kembalian: t.kembalian || 0,
+            Kasir: t.kasir || 'Admin',
+          };
+        }),
       );
 
       // Sheet 3: Detail Item
       const detailItems = db.getAllSync(
-        `SELECT t.no_trx, t.waktu, t.metode_bayar, ti.nama_produk, ti.qty, ti.harga,
-                COALESCE(ti.harga_modal, p.harga_modal, 0) as harga_modal, ti.subtotal,
-                ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)) as profit_item
+        `SELECT
+                t.no_trx,
+                t.waktu,
+                t.metode_bayar,
+                ti.nama_produk,
+                ti.qty,
+                ti.harga,
+                COALESCE(ti.harga_modal, p.harga_modal, 0) as harga_modal,
+                ti.subtotal,
+                COALESCE(ti.diskon_tipe, '') as diskon_tipe,
+                COALESCE(ti.diskon_nilai, 0) as diskon_nilai,
+                COALESCE(ti.diskon_nominal, 0) as diskon_nominal,
+                (ti.subtotal - COALESCE(ti.diskon_nominal, 0)) as omset_bersih,
+                (
+                  ti.subtotal
+                  - COALESCE(ti.diskon_nominal, 0)
+                  - (ti.qty * COALESCE(ti.harga_modal, p.harga_modal, 0))
+                ) as profit_item
          FROM transaksi_item ti
          JOIN transaksi t ON t.id = ti.transaksi_id
          LEFT JOIN produk p ON p.id = ti.produk_id
@@ -2221,6 +2307,7 @@ _Dikirim via Kasir WarungKu_`;
          ORDER BY t.waktu DESC, ti.id ASC`,
         [dari, sampai],
       ) as any[];
+
       const wsDetail = XLSX.utils.json_to_sheet(
         detailItems.map((d: any) => ({
           'No Transaksi': d.no_trx,
@@ -2232,6 +2319,10 @@ _Dikirim via Kasir WarungKu_`;
           'Harga Jual': d.harga,
           'Harga Modal': d.harga_modal,
           Subtotal: d.subtotal,
+          'Tipe Diskon': d.diskon_tipe || '-',
+          'Nilai Diskon': d.diskon_nilai || 0,
+          'Total Diskon': d.diskon_nominal || 0,
+          'Omset Bersih': d.omset_bersih,
           Profit: d.profit_item,
         })),
       );
@@ -2256,11 +2347,19 @@ _Dikirim via Kasir WarungKu_`;
 
       // Sheet 5: Produk Terlaris
       const terlaris = db.getAllSync(
-        `SELECT ti.nama_produk, SUM(ti.qty) as total_qty, SUM(ti.subtotal) as total_omset
-         FROM transaksi_item ti
-         JOIN transaksi t ON t.id = ti.transaksi_id
-         WHERE date(t.waktu) BETWEEN ? AND ?
-         GROUP BY ti.nama_produk ORDER BY total_qty DESC LIMIT 100`,
+        `SELECT
+              ti.nama_produk,
+              SUM(ti.qty) AS total_qty,
+              SUM(
+                COALESCE(ti.subtotal, ti.harga * ti.qty, 0)
+                - COALESCE(ti.diskon_nominal, 0)
+              ) AS total_omset
+          FROM transaksi_item ti
+          JOIN transaksi t ON t.id = ti.transaksi_id
+          WHERE date(t.waktu) BETWEEN ? AND ?
+          GROUP BY ti.nama_produk
+          ORDER BY total_qty DESC
+          LIMIT 100`,
         [dari, sampai],
       ) as any[];
       const wsTerlaris = XLSX.utils.json_to_sheet(
@@ -2277,17 +2376,26 @@ _Dikirim via Kasir WarungKu_`;
       XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
       if (periode === 'bulanan') {
         const perHari = db.getAllSync(
-          `SELECT date(t.waktu) as tgl,
-                  COUNT(*) as trx,
-                  COALESCE(SUM(t.total), 0) as omset,
-                  COALESCE(SUM(
-                    (SELECT SUM(ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)))
-                     FROM transaksi_item ti LEFT JOIN produk p ON p.id=ti.produk_id
-                     WHERE ti.transaksi_id=t.id)
-                  ), 0) as profit
-           FROM transaksi t
-           WHERE date(t.waktu) BETWEEN ? AND ?
-           GROUP BY date(t.waktu) ORDER BY tgl ASC`,
+          `SELECT
+              date(t.waktu) as tgl,
+              COUNT(*) as trx,
+              COALESCE(SUM(t.total), 0) as omset,
+              COALESCE(SUM(
+                (
+                  SELECT SUM(
+                    ti.qty * (
+                      ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)
+                    ) - COALESCE(ti.diskon_nominal, 0)
+                  )
+                  FROM transaksi_item ti
+                  LEFT JOIN produk p ON p.id = ti.produk_id
+                  WHERE ti.transaksi_id = t.id
+                )
+              ), 0) as profit
+          FROM transaksi t
+          WHERE date(t.waktu) BETWEEN ? AND ?
+          GROUP BY date(t.waktu)
+          ORDER BY tgl ASC`,
           [dari, sampai],
         ) as any[];
         const wsPerHari = XLSX.utils.json_to_sheet(

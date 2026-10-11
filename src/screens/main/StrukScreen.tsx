@@ -72,16 +72,35 @@ export default function StrukScreen({ route, navigation }: any) {
   // ── Generate HTML untuk PDF ──────────────────────────────────────────────
   const generateHTML = () => {
     const itemsHTML = items
-      .map(
-        (item: any) => `
+      .map((item: any) => {
+        const diskonItem = item.diskon_nominal ?? 0;
+        const subtotalBersih = Math.max(0, item.subtotal - diskonItem);
+
+        return `
       <tr>
         <td class="item-name">${item.nama_produk}</td>
         <td class="item-qty">${item.qty}x</td>
         <td class="item-price">${formatRupiah(item.harga)}</td>
-        <td class="item-total">${formatRupiah(item.subtotal)}</td>
+        <td class="item-total">${formatRupiah(
+          diskonItem > 0 ? subtotalBersih : item.subtotal,
+        )}</td>
       </tr>
-    `,
-      )
+      ${
+        diskonItem > 0
+          ? `
+            <tr>
+              <td colspan="3" style="color:#e74c3c;font-size:10px;padding-bottom:6px;">
+                Diskon produk
+              </td>
+              <td style="color:#e74c3c;text-align:right;font-size:10px;padding-bottom:6px;">
+                -${formatRupiah(diskonItem)}
+              </td>
+            </tr>
+          `
+          : ''
+      }
+    `;
+      })
       .join('');
 
     return `
@@ -665,20 +684,42 @@ export default function StrukScreen({ route, navigation }: any) {
             <View style={s.dividerDash} />
 
             {/* Items */}
-            <Text style={s.sectionTitle}>DETAIL PESANAN</Text>
-            {items.map((item: any, i: number) => (
-              <View key={i} style={s.itemRow}>
-                <View style={s.itemMeta}>
-                  <Text style={s.itemNama}>{item.nama_produk}</Text>
+            {items.map((item: any, i: number) => {
+              const diskonItem = item.diskon_nominal ?? 0;
+              const subtotalBersih = Math.max(0, item.subtotal - diskonItem);
 
-                  <Text style={s.itemQtyPrice}>
-                    {item.qty} x {formatRupiah(item.harga)}
+              return (
+                <View key={i} style={s.itemRow}>
+                  <View style={s.itemMeta}>
+                    <Text style={s.itemNama}>{item.nama_produk}</Text>
+
+                    <Text style={s.itemQtyPrice}>
+                      {item.qty} x {formatRupiah(item.harga)}
+                    </Text>
+
+                    {diskonItem > 0 && (
+                      <>
+                        <Text
+                          style={[s.itemQtyPrice, { color: Colors.danger }]}
+                        >
+                          Diskon: -{formatRupiah(diskonItem)}
+                        </Text>
+
+                        <Text style={s.itemQtyPrice}>
+                          Bersih: {formatRupiah(subtotalBersih)}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+
+                  <Text style={s.itemTotal}>
+                    {formatRupiah(
+                      diskonItem > 0 ? subtotalBersih : item.subtotal,
+                    )}
                   </Text>
                 </View>
-
-                <Text style={s.itemTotal}>{formatRupiah(item.subtotal)}</Text>
-              </View>
-            ))}
+              );
+            })}
 
             <View style={s.dividerDash} />
 
