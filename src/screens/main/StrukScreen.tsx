@@ -597,6 +597,15 @@ export default function StrukScreen({ route, navigation }: any) {
     }
   };
 
+  const diskonProduk = items.reduce(
+    (sum: number, item: any) => sum + (item.diskon_nominal || 0),
+    0,
+  );
+
+  const diskonTransaksi = diskon || 0;
+
+  const totalDiskon = diskonProduk + diskonTransaksi;
+
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
       <View style={s.header}>
@@ -728,18 +737,22 @@ export default function StrukScreen({ route, navigation }: any) {
               <Text style={s.sumLabel}>Subtotal ({items.length} item)</Text>
               <Text style={s.sumVal}>{formatRupiah(subtotal)}</Text>
             </View>
-            {diskon > 0 && (
+
+            {diskonProduk > 0 && (
               <View style={s.sumRow}>
-                <Text style={s.sumLabel}>Diskon</Text>
+                <Text style={s.sumLabel}>Diskon Produk</Text>
                 <Text style={[s.sumVal, { color: Colors.danger }]}>
-                  -{formatRupiah(diskon)}
+                  -{formatRupiah(diskonProduk)}
                 </Text>
               </View>
             )}
-            {pajak > 0 && (
+
+            {diskonTransaksi > 0 && (
               <View style={s.sumRow}>
-                <Text style={s.sumLabel}>Pajak ({pajakPersen}%)</Text>
-                <Text style={s.sumVal}>{formatRupiah(pajak)}</Text>
+                <Text style={s.sumLabel}>Diskon Transaksi</Text>
+                <Text style={[s.sumVal, { color: Colors.danger }]}>
+                  -{formatRupiah(diskonTransaksi)}
+                </Text>
               </View>
             )}
 

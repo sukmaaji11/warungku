@@ -1922,7 +1922,22 @@ function PenjualanModal({
                       }}
                       onPress={() => {
                         const trxItems = getTrxDetail(selectedTrx.id);
+
+                        const subtotalKotor = trxItems.reduce(
+                          (sum: number, i: any) => sum + (i.subtotal || 0),
+                          0,
+                        );
+
+                        const diskonProduk = trxItems.reduce(
+                          (sum: number, i: any) =>
+                            sum + (i.diskon_nominal || 0),
+                          0,
+                        );
+
+                        const diskonTransaksi = selectedTrx.diskon || 0;
+
                         setSelectedTrx(null);
+
                         onShowStruk({
                           noTrx: selectedTrx.no_trx,
                           items: trxItems.map((i: any) => ({
@@ -1930,9 +1945,14 @@ function PenjualanModal({
                             harga: i.harga,
                             qty: i.qty,
                             subtotal: i.subtotal,
+                            diskon_tipe: i.diskon_tipe,
+                            diskon_nilai: i.diskon_nilai,
+                            diskon_nominal: i.diskon_nominal || 0,
                           })),
-                          subtotal: selectedTrx.subtotal,
-                          diskon: selectedTrx.diskon || 0,
+                          subtotal: subtotalKotor,
+                          diskon: diskonTransaksi,
+                          diskonProduk,
+                          totalDiskon: diskonProduk + diskonTransaksi,
                           pajak: selectedTrx.pajak || 0,
                           pajakPersen: selectedTrx.pajak_persen || 0,
                           total: selectedTrx.total,
