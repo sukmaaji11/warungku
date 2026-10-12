@@ -324,11 +324,18 @@ export function getProfitByMetode(
   try {
     let query = `SELECT t.metode_bayar,
         COALESCE(SUM(
-          (SELECT SUM(ti.qty * (ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)) - COALESCE(ti.diskon_nominal, 0)))
-           FROM transaksi_item ti
-           LEFT JOIN produk p ON p.id = ti.produk_id
-           WHERE ti.transaksi_id = t.id)
-        ), 0) as profit
+          (
+            SELECT SUM(
+              ti.qty * (
+                ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)
+              ) - COALESCE(ti.diskon_nominal, 0)
+            )
+            FROM transaksi_item ti
+            LEFT JOIN produk p ON p.id = ti.produk_id
+            WHERE ti.transaksi_id = t.id
+          ) - COALESCE(t.diskon, 0)
+        ), 0) AS profit
+
        FROM transaksi t
        WHERE date(t.waktu) BETWEEN ? AND ?`;
     const params: any[] = [dari, sampai];
@@ -376,7 +383,7 @@ export function getRingkasanByRange(
         FROM transaksi_item ti
         WHERE ti.transaksi_id = t.id
       )), 0) AS diskon,
-
+      
       COALESCE(SUM((
         SELECT SUM(
           ti.qty * (
@@ -387,7 +394,9 @@ export function getRingkasanByRange(
         FROM transaksi_item ti
         LEFT JOIN produk p ON p.id = ti.produk_id
         WHERE ti.transaksi_id = t.id
-      )), 0) as profit
+      )), 0)
+      - COALESCE(SUM(COALESCE(t.diskon, 0)), 0) AS profit
+
 
       FROM transaksi t
       WHERE date(t.waktu) BETWEEN ? AND ?${kasirWhere}`,

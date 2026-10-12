@@ -80,12 +80,26 @@ function DetailTrxItems({ trxId }: { trxId: number }) {
   React.useEffect(() => {
     setItems(getTrxDetail(trxId));
   }, [trxId]);
-  const profit = items.reduce((s, i) => {
+
+  const profitSebelumDiskonTransaksi = items.reduce((s, i) => {
     const hargaModal = i.harga_modal || 0;
     const diskonItem = i.diskon_nominal || 0;
 
     return s + i.qty * (i.harga - hargaModal) - diskonItem;
   }, 0);
+
+  const diskonTransaksi = (() => {
+    const db = getDB();
+    const trx = db.getFirstSync(
+      'SELECT COALESCE(diskon, 0) AS diskon FROM transaksi WHERE id = ?',
+      [trxId],
+    ) as { diskon: number } | null;
+
+    return trx?.diskon || 0;
+  })();
+
+  const profit = profitSebelumDiskonTransaksi - diskonTransaksi;
+
   if (items.length === 0)
     return (
       <View style={{ alignItems: 'center', padding: 20 }}>
@@ -2303,23 +2317,31 @@ _Dikirim via Kasir WarungKu_`;
       // Sheet 3: Detail Item
       const detailItems = db.getAllSync(
         `SELECT
-                t.no_trx,
-                t.waktu,
-                t.metode_bayar,
-                ti.nama_produk,
-                ti.qty,
-                ti.harga,
-                COALESCE(ti.harga_modal, p.harga_modal, 0) as harga_modal,
-                ti.subtotal,
-                COALESCE(ti.diskon_tipe, '') as diskon_tipe,
-                COALESCE(ti.diskon_nilai, 0) as diskon_nilai,
-                COALESCE(ti.diskon_nominal, 0) as diskon_nominal,
-                (ti.subtotal - COALESCE(ti.diskon_nominal, 0)) as omset_bersih,
-                (
-                  ti.subtotal
-                  - COALESCE(ti.diskon_nominal, 0)
-                  - (ti.qty * COALESCE(ti.harga_modal, p.harga_modal, 0))
-                ) as profit_item
+            t.no_trx,
+            t.waktu,
+            t.metode_bayar,
+            ti.nama_produk,
+            ti.qty,
+            ti.harga,
+            COALESCE(ti.harga_modal, p.harga_modal, 0) AS harga_modal,
+            ti.subtotal,
+            COALESCE(ti.diskon_tipe, '') AS diskon_tipe,
+            COALESCE(ti.diskon_nilai, 0) AS diskon_nilai,
+            COALESCE(ti.diskon_nominal, 0) AS diskon_nominal,
+            (ti.subtotal - COALESCE(ti.diskon_nominal, 0)) AS omset_bersih,
+            (
+              ti.subtotal
+              - COALESCE(ti.diskon_nominal, 0)
+              - (ti.qty * COALESCE(ti.harga_modal, p.harga_modal, 0))
+              - CASE
+                  WHEN COALESCE(t.subtotal, 0) > 0
+                  THEN
+                    COALESCE(t.diskon, 0)
+                    * (ti.subtotal - COALESCE(ti.diskon_nominal, 0))
+                    / t.subtotal
+                  ELSE 0
+                END
+            ) AS profit_item
          FROM transaksi_item ti
          JOIN transaksi t ON t.id = ti.transaksi_id
          LEFT JOIN produk p ON p.id = ti.produk_id
@@ -2397,25 +2419,25 @@ _Dikirim via Kasir WarungKu_`;
       if (periode === 'bulanan') {
         const perHari = db.getAllSync(
           `SELECT
-              date(t.waktu) as tgl,
-              COUNT(*) as trx,
-              COALESCE(SUM(t.total), 0) as omset,
-              COALESCE(SUM(
-                (
-                  SELECT SUM(
-                    ti.qty * (
-                      ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)
-                    ) - COALESCE(ti.diskon_nominal, 0)
-                  )
-                  FROM transaksi_item ti
-                  LEFT JOIN produk p ON p.id = ti.produk_id
-                  WHERE ti.transaksi_id = t.id
-                )
-              ), 0) as profit
-          FROM transaksi t
-          WHERE date(t.waktu) BETWEEN ? AND ?
-          GROUP BY date(t.waktu)
-          ORDER BY tgl ASC`,
+                date(t.waktu) as tgl,
+                COUNT(*) as trx,
+                COALESCE(SUM(t.total), 0) as omset,
+                COALESCE(SUM(
+                  (
+                    SELECT SUM(
+                      ti.qty * (
+                        ti.harga - COALESCE(ti.harga_modal, p.harga_modal, 0)
+                      ) - COALESCE(ti.diskon_nominal, 0)
+                    )
+                    FROM transaksi_item ti
+                    LEFT JOIN produk p ON p.id = ti.produk_id
+                    WHERE ti.transaksi_id = t.id
+                  ) - COALESCE(t.diskon, 0)
+                ), 0) as profit
+            FROM transaksi t
+            WHERE date(t.waktu) BETWEEN ? AND ?
+            GROUP BY date(t.waktu)
+            ORDER BY tgl ASC`,
           [dari, sampai],
         ) as any[];
         const wsPerHari = XLSX.utils.json_to_sheet(
