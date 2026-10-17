@@ -2261,7 +2261,7 @@ _Dikirim via Kasir WarungKu_`;
         ],
         ['Periode', labelPeriode],
         ['Dari', dari],
-        ['Sampai', sampai],
+        -['Sampai', sampai],
         ['Toko', namaToko],
         [],
         ['RINGKASAN'],
